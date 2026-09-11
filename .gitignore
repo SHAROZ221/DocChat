@@ -17,6 +17,7 @@ app/uploads/
 uploads/
 chroma_db/
 *.chroma
+doc/
 
 # IDE
 .vscode/
