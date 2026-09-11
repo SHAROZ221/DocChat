@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex h-full w-full overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-80 md:w-96 flex-shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full shadow-sm z-10 transition-all duration-300">
+        <!-- Sidebar Header -->
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-primary-500 flex items-center justify-center text-white shadow-md">
+                    <i data-lucide="bot-message-square" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-slate-900 dark:text-white">DocChat</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">RAG Document Intelligence</p>
+                </div>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                v1.0
+            </span>
+        </div>
+
+        <!-- Upload Box -->
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <div id="drop-zone" class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 rounded-xl p-4 text-center cursor-pointer transition-all bg-white dark:bg-slate-800/60 group">
+                <input type="file" id="file-input" class="hidden" accept=".pdf,.txt,.md,.docx,.pptx,.xlsx">
+                <div class="flex flex-col items-center">
+                    <div class="w-10 h-10 rounded-full bg-brand-50 dark:bg-slate-700 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                        Click or drag & drop files
+                    </p>
+                    <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                        PDF, DOCX, TXT, MD, PPTX, XLSX (up to 50MB)
+                    </p>
+                </div>
+            </div>
+
+            <!-- Upload progress / status -->
+            <div id="upload-status" class="hidden mt-3 text-xs flex items-center space-x-2 text-brand-600 dark:text-brand-400 font-medium">
+                <svg class="animate-spin h-4 w-4 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span id="upload-status-text">Processing document...</span>
+            </div>
+        </div>
+
+        <!-- Documents List -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-2" id="document-list-container">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Uploaded Documents (<span id="doc-count">{{ documents|length }}</span>)
+                </h2>
+            </div>
+
+            <ul id="document-list" class="space-y-1.5">
+                {% if documents %}
+                    {% for doc in documents %}
+                    <li class="group flex items-center justify-between p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 transition-colors" data-source="{{ doc }}">
+                        <div class="flex items-center space-x-2.5 overflow-hidden">
+                            <i data-lucide="file-text" class="w-4 h-4 text-brand-500 flex-shrink-0"></i>
+                            <span class="text-xs font-medium text-slate-800 dark:text-slate-200 truncate max-w-[190px]" title="{{ doc }}">{{ doc }}</span>
+                        </div>
+                        <button onclick="deleteDocument('{{ doc }}')" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 p-1 rounded transition-opacity" title="Remove document">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </li>
+                    {% endfor %}
+                {% else %}
+                    <li id="no-docs-item" class="text-xs text-slate-400 dark:text-slate-500 italic py-4 text-center">
+                        No documents uploaded yet.
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2 bg-slate-50/50 dark:bg-slate-900/50">
+            <button id="clear-chat-btn" onclick="clearChat()" class="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 transition-colors">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Reset Chat Session</span>
+            </button>
+            <div class="flex items-center justify-center space-x-1 text-[10px] text-slate-400 dark:text-slate-500">
+                <span>sentence-transformers</span>
+                <span>•</span>
+                <span>ChromaDB</span>
+                <span>•</span>
+                <span>Gemini</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Chat View -->
+    <main class="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
+        <!-- Top Navigation Bar -->
+        <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur px-6 flex items-center justify-between flex-shrink-0 z-10">
+            <div class="flex items-center space-x-3">
+                <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">DocChat Workspace</span>
+                <span id="header-doc-badge" class="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                    {{ documents|length }} doc(s) indexed
+                </span>
+            </div>
+
+            <!-- Theme Toggle -->
+            <button id="theme-toggle" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" title="Toggle Theme">
+                <i data-lucide="moon" id="theme-icon" class="w-4 h-4"></i>
+            </button>
+        </header>
+
+        <!-- Messages Area -->
+        <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+            <!-- Welcome state if no messages -->
+            <div id="welcome-card" class="max-w-xl mx-auto my-12 text-center p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-500 to-primary-500 mx-auto flex items-center justify-center text-white mb-4 shadow-lg">
+                    <i data-lucide="sparkles" class="w-7 h-7"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Ask anything about your documents</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
+                    Upload PDFs, Word docs, spreadsheets, or text files on the left. DocChat chunks and embeds them locally with sentence-transformers and answers with Gemini.
+                </p>
+
+                <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                    <button onclick="askPreset('Summarize the main points of the uploaded document')" class="p-3 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 hover:border-brand-500 text-slate-700 dark:text-slate-300 transition-colors flex items-start space-x-2">
+                        <i data-lucide="file-search" class="w-4 h-4 text-brand-500 flex-shrink-0 mt-0.5"></i>
+                        <span>"Summarize the main points"</span>
+                    </button>
+                    <button onclick="askPreset('What are the key statistics or figures mentioned?')" class="p-3 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 hover:border-brand-500 text-slate-700 dark:text-slate-300 transition-colors flex items-start space-x-2">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5"></i>
+                        <span>"Key statistics and figures"</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 md:p-6 border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur flex-shrink-0">
+            <div class="max-w-4xl mx-auto">
+                <form id="chat-form" onsubmit="submitQuestion(event)" class="relative flex items-end bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus-within:border-brand-500 dark:focus-within:border-brand-500 rounded-2xl shadow-sm transition-all">
+                    <textarea
+                        id="question-input"
+                        rows="1"
+                        placeholder="Ask a question about your documents... (Shift+Enter for new line)"
+                        class="w-full py-3.5 pl-4 pr-14 text-sm bg-transparent text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none resize-none max-h-36 overflow-y-auto"
+                        onkeydown="handleKeyDown(event)"
+                        oninput="autoGrow(this)"
+                    ></textarea>
+                    <button
+                        type="submit"
+                        id="send-button"
+                        class="absolute right-2 bottom-2 p-2 rounded-xl bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white shadow-sm transition-all"
+                        title="Send question"
+                    >
+                        <i data-lucide="arrow-up" class="w-4 h-4"></i>
+                    </button>
+                </form>
+                <div class="mt-2 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 px-1">
+                    <span>Press <kbd class="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">Enter</kbd> to send, <kbd class="px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">Shift+Enter</kbd> for new line</span>
+                    <span id="char-count">0 chars</span>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}
