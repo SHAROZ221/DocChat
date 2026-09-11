@@ -123,6 +123,25 @@ class VectorStore:
                 sources.add(meta["source"])
         return sorted(list(sources))
 
+    def get_sources_details(self) -> List[Dict[str, Any]]:
+        """Return list of distinct documents with chunk counts and stats."""
+        count = self.collection.count()
+        if count == 0:
+            return []
+
+        data = self.collection.get(include=["metadatas"])
+        metas = data.get("metadatas", [])
+        stats: Dict[str, Dict[str, Any]] = {}
+        for meta in metas:
+            if not meta or "source" not in meta:
+                continue
+            src = meta["source"]
+            if src not in stats:
+                stats[src] = {"name": src, "chunks": 0}
+            stats[src]["chunks"] += 1
+
+        return sorted(list(stats.values()), key=lambda x: x["name"])
+
     def delete_by_source(self, source_name: str) -> int:
         """Delete all chunks belonging to a specific document."""
         # Find all matching IDs

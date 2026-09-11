@@ -70,6 +70,7 @@ def upload_file():
             "chunks_count": added_count,
             "message": f"Successfully processed '{filename}' into {added_count} searchable chunks.",
             "documents": current_app.vectorstore.get_sources(),
+            "documents_detailed": current_app.vectorstore.get_sources_details(),
         })
 
     except Exception as e:
@@ -80,7 +81,13 @@ def upload_file():
 def get_documents():
     """Retrieve list of currently indexed documents."""
     sources = current_app.vectorstore.get_sources()
-    return jsonify({"success": True, "documents": sources})
+    details = current_app.vectorstore.get_sources_details()
+    return jsonify({
+        "success": True,
+        "documents": sources,
+        "documents_detailed": details,
+        "total_chunks": sum(d.get("chunks", 0) for d in details)
+    })
 
 
 @upload_bp.route("/documents/<path:source_name>", methods=["DELETE"])
@@ -97,10 +104,13 @@ def delete_document(source_name: str):
             except OSError:
                 pass
 
+        details = current_app.vectorstore.get_sources_details()
         return jsonify({
             "success": True,
             "message": f"Removed '{source_name}' ({deleted_count} chunks deleted).",
             "documents": current_app.vectorstore.get_sources(),
+            "documents_detailed": details,
+            "total_chunks": sum(d.get("chunks", 0) for d in details)
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

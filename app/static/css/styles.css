@@ -1,139 +1,234 @@
-/* Custom styling for DocChat */
+/* ==========================================================================
+   DocChat — Modern UI/UX Stylesheet
+   Design System: Clean AI SaaS / OLED Dark Mode / Data-Dense
+   ========================================================================== */
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
 }
 
-::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.3);
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.25);
     border-radius: 9999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.5);
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.45);
 }
 
-/* Markdown typography inside assistant messages */
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(82, 82, 91, 0.35);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(82, 82, 91, 0.6);
+}
+
+/* --------------------------------------------------------------------------
+   Markdown Chat Typography (.prose-chat)
+   -------------------------------------------------------------------------- */
 .prose-chat {
-    font-size: 0.875rem;
-    line-height: 1.625;
+    font-size: 0.925rem;
+    line-height: 1.68;
+    word-break: break-word;
 }
 
 .prose-chat p {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.85rem;
 }
 
 .prose-chat p:last-child {
     margin-bottom: 0;
 }
 
+.prose-chat h1, 
+.prose-chat h2, 
+.prose-chat h3, 
+.prose-chat h4 {
+    font-weight: 700;
+    color: inherit;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.35;
+}
+
+.prose-chat h1 { font-size: 1.25rem; }
+.prose-chat h2 { font-size: 1.125rem; }
+.prose-chat h3 { font-size: 1rem; }
+
 .prose-chat ul {
     list-style-type: disc;
-    padding-left: 1.25rem;
-    margin-bottom: 0.75rem;
+    padding-left: 1.35rem;
+    margin-bottom: 0.85rem;
 }
 
 .prose-chat ol {
     list-style-type: decimal;
-    padding-left: 1.25rem;
-    margin-bottom: 0.75rem;
+    padding-left: 1.35rem;
+    margin-bottom: 0.85rem;
 }
 
 .prose-chat li {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
 }
 
-.prose-chat code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 0.8em;
-    padding: 0.15rem 0.3rem;
+.prose-chat hr {
+    border: none;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
+    margin: 1rem 0;
+}
+
+/* Inline Code */
+.prose-chat :not(pre) > code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.825em;
+    padding: 0.2rem 0.4rem;
     border-radius: 0.375rem;
-    background-color: rgba(100, 116, 139, 0.15);
+    background-color: rgba(99, 102, 241, 0.08);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.15);
 }
 
+.dark .prose-chat :not(pre) > code {
+    background-color: rgba(165, 180, 252, 0.1);
+    color: #a5b4fc;
+    border-color: rgba(165, 180, 252, 0.15);
+}
+
+/* Code Blocks */
 .prose-chat pre {
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    background-color: #0f172a;
+    position: relative;
+    padding: 1rem 1.15rem;
+    border-radius: 0.75rem;
+    background-color: #0f1117;
     color: #f8fafc;
+    border: 1px solid #1e222d;
     overflow-x: auto;
-    margin-bottom: 0.75rem;
+    margin: 0.85rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.825rem;
+    line-height: 1.6;
+}
+
+.dark .prose-chat pre {
+    background-color: #0d0e12;
+    border-color: #27272a;
 }
 
 .prose-chat pre code {
     padding: 0;
-    background-color: transparent;
+    background: transparent;
+    border: none;
     color: inherit;
 }
 
+/* Blockquotes */
 .prose-chat blockquote {
-    border-left: 3px solid #3b82f6;
-    padding-left: 0.75rem;
+    border-left: 3px solid #6366f1;
+    padding-left: 1rem;
     font-style: italic;
     color: #64748b;
-    margin-bottom: 0.75rem;
+    margin: 0.85rem 0;
 }
 
 .dark .prose-chat blockquote {
-    color: #94a3b8;
+    border-left-color: #818cf8;
+    color: #a1a1aa;
 }
 
-.prose-chat strong {
+/* Tables */
+.prose-chat table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.85rem;
+}
+
+.prose-chat th {
+    background-color: rgba(148, 163, 184, 0.1);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
     font-weight: 600;
+    border-bottom: 2px solid rgba(148, 163, 184, 0.2);
 }
 
-/* Loading dots animation */
-.dot-flashing {
-    position: relative;
-    width: 6px;
-    height: 6px;
-    border-radius: 5px;
-    background-color: #3b82f6;
-    color: #3b82f6;
-    animation: dot-flashing 1s infinite linear alternate;
-    animation-delay: 0.5s;
+.prose-chat td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
 }
 
-.dot-flashing::before, .dot-flashing::after {
-    content: "";
-    display: inline-block;
-    position: absolute;
-    top: 0;
+.dark .prose-chat th {
+    background-color: rgba(39, 39, 42, 0.5);
+    border-bottom-color: rgba(63, 63, 70, 0.6);
 }
 
-.dot-flashing::before {
-    left: -10px;
-    width: 6px;
-    height: 6px;
-    border-radius: 5px;
-    background-color: #3b82f6;
-    color: #3b82f6;
-    animation: dot-flashing 1s infinite alternate;
-    animation-delay: 0s;
+.dark .prose-chat td {
+    border-bottom-color: rgba(39, 39, 42, 0.5);
 }
 
-.dot-flashing::after {
-    left: 10px;
-    width: 6px;
-    height: 6px;
-    border-radius: 5px;
-    background-color: #3b82f6;
-    color: #3b82f6;
-    animation: dot-flashing 1s infinite alternate;
-    animation-delay: 1s;
-}
-
-@keyframes dot-flashing {
+/* --------------------------------------------------------------------------
+   Thinking / Shimmer Animation
+   -------------------------------------------------------------------------- */
+@keyframes shimmerWave {
     0% {
-        background-color: #3b82f6;
+        background-position: -200% 0;
     }
-    50%, 100% {
-        background-color: rgba(59, 130, 246, 0.2);
+    100% {
+        background-position: 200% 0;
     }
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(90deg, rgba(226, 232, 240, 0.4) 25%, rgba(203, 213, 225, 0.8) 50%, rgba(226, 232, 240, 0.4) 75%);
+    background-size: 200% 100%;
+    animation: shimmerWave 1.8s infinite ease-in-out;
+}
+
+.dark .skeleton-shimmer {
+    background: linear-gradient(90deg, rgba(39, 39, 42, 0.4) 25%, rgba(63, 63, 70, 0.7) 50%, rgba(39, 39, 42, 0.4) 75%);
+    background-size: 200% 100%;
+    animation: shimmerWave 1.8s infinite ease-in-out;
+}
+
+/* Toast Animations */
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toastOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+}
+
+.toast-enter {
+    animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-exit {
+    animation: toastOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Modal Animations */
+.modal-show #modal-content {
+    opacity: 1;
+    transform: scale(1);
 }

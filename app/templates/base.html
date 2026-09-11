@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}DocChat — Intelligent Document Q&A{% endblock %}</title>
+    <title>{% block title %}DocChat — Grounded RAG Document Intelligence{% endblock %}</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -11,36 +17,67 @@
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+                    },
                     colors: {
-                        primary: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                            700: '#0f766e',
-                        },
                         brand: {
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        },
+                        dark: {
+                            bg: '#09090b',         /* Zinc 950 base */
+                            card: '#121215',       /* Elevated surface */
+                            surface: '#18181b',    /* Interactive surface */
+                            border: '#27272a',     /* Zinc 800 subtle borders */
+                            hover: '#27272a',      /* Zinc 800 hover */
                         }
+                    },
+                    boxShadow: {
+                        'glow-brand': '0 0 25px -5px rgba(99, 102, 241, 0.3)',
+                        'glow-emerald': '0 0 20px -5px rgba(16, 185, 129, 0.25)',
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'soft-dark': '0 4px 25px -2px rgba(0, 0, 0, 0.5)',
                     }
                 }
             }
         }
     </script>
+
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Marked.js for markdown rendering in chat answers -->
+    <!-- Marked.js for markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- DOMPurify to sanitize markdown output -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex overflow-hidden font-sans transition-colors duration-200">
+<body class="h-full bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-zinc-100 flex overflow-hidden font-sans antialiased selection:bg-brand-500/20 selection:text-brand-600 dark:selection:text-brand-300">
     {% block content %}{% endblock %}
+
+    <!-- Custom Modal Container for Dialogs -->
+    <div id="modal-container" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
+        <div id="modal-content" class="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-all scale-95 opacity-0">
+            <!-- Injected via JS -->
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
     <script>
-        // Initialize icons
         lucide.createIcons();
     </script>
 </body>

@@ -1,14 +1,18 @@
-// DocChat Frontend Controller
+// ==========================================================================
+// DocChat — Modern UI/UX Controller
+// Design System: Clean AI SaaS / OLED Dark Mode / Data-Dense
+// ==========================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
     initTheme();
     setupDropZone();
+    setupTextarea();
     lucide.createIcons();
 });
 
-// ----------------------------------------------------
+// --------------------------------------------------------------------------
 // Theme Management
-// ----------------------------------------------------
+// --------------------------------------------------------------------------
 function initTheme() {
     const savedTheme = localStorage.getItem("docchat_theme") || "dark";
     if (savedTheme === "dark") {
@@ -38,16 +42,150 @@ function updateThemeIcon() {
     }
 }
 
-// ----------------------------------------------------
+// --------------------------------------------------------------------------
+// Mobile Sidebar Drawer
+// --------------------------------------------------------------------------
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    if (!sidebar || !backdrop) return;
+
+    const isClosed = sidebar.classList.contains("-translate-x-full");
+    if (isClosed) {
+        sidebar.classList.remove("-translate-x-full");
+        sidebar.classList.add("translate-x-0");
+        backdrop.classList.remove("hidden");
+    } else {
+        sidebar.classList.add("-translate-x-full");
+        sidebar.classList.remove("translate-x-0");
+        backdrop.classList.add("hidden");
+    }
+}
+
+// --------------------------------------------------------------------------
+// Toast Notification System
+// --------------------------------------------------------------------------
+function showToast(message, type = "info") {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = `toast-enter pointer-events-auto flex items-center space-x-2.5 px-4 py-3 rounded-xl border shadow-xl text-xs font-semibold backdrop-blur-md transition-all ${
+        type === "success" 
+            ? "bg-emerald-50/95 dark:bg-emerald-950/90 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800"
+            : type === "error"
+            ? "bg-rose-50/95 dark:bg-rose-950/90 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-800"
+            : "bg-white/95 dark:bg-dark-card/95 text-slate-800 dark:text-zinc-200 border-slate-200 dark:border-dark-border"
+    }`;
+
+    const iconName = type === "success" ? "check-circle" : type === "error" ? "alert-triangle" : "info";
+    toast.innerHTML = `
+        <i data-lucide="${iconName}" class="w-4 h-4 flex-shrink-0"></i>
+        <span>${escapeHtml(message)}</span>
+    `;
+
+    container.appendChild(toast);
+    lucide.createIcons();
+
+    setTimeout(() => {
+        toast.classList.remove("toast-enter");
+        toast.classList.add("toast-exit");
+        setTimeout(() => toast.remove(), 250);
+    }, 3800);
+}
+
+// --------------------------------------------------------------------------
+// Custom Modal Dialogs
+// --------------------------------------------------------------------------
+function showModal({ title, message, confirmText = "Confirm", confirmClass = "bg-rose-600 hover:bg-rose-700", onConfirm }) {
+    const container = document.getElementById("modal-container");
+    const content = document.getElementById("modal-content");
+    if (!container || !content) return;
+
+    content.innerHTML = `
+        <div class="flex items-start justify-between mb-4">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">${escapeHtml(title)}</h3>
+            <button onclick="closeModal()" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 cursor-pointer">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <p class="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed mb-6">${escapeHtml(message)}</p>
+        <div class="flex items-center justify-end space-x-2">
+            <button onclick="closeModal()" class="px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-dark-surface rounded-xl transition-colors cursor-pointer">
+                Cancel
+            </button>
+            <button id="modal-confirm-btn" class="px-4 py-2 text-xs font-semibold text-white rounded-xl shadow-sm transition-all cursor-pointer ${confirmClass}">
+                ${escapeHtml(confirmText)}
+            </button>
+        </div>
+    `;
+
+    container.classList.remove("hidden");
+    setTimeout(() => container.classList.add("modal-show"), 10);
+    lucide.createIcons();
+
+    document.getElementById("modal-confirm-btn").onclick = () => {
+        closeModal();
+        if (onConfirm) onConfirm();
+    };
+}
+
+function closeModal() {
+    const container = document.getElementById("modal-container");
+    if (!container) return;
+    container.classList.remove("modal-show");
+    setTimeout(() => container.classList.add("hidden"), 150);
+}
+
+// --------------------------------------------------------------------------
+// Document Filter & Search
+// --------------------------------------------------------------------------
+function filterDocuments(query) {
+    const items = document.querySelectorAll("#document-list .doc-item");
+    const clearBtn = document.getElementById("clear-filter-btn");
+    const lowerQuery = query.toLowerCase().trim();
+
+    if (clearBtn) {
+        if (lowerQuery) {
+            clearBtn.classList.remove("hidden");
+        } else {
+            clearBtn.classList.add("hidden");
+        }
+    }
+
+    let matchCount = 0;
+    items.forEach(item => {
+        const name = item.getAttribute("data-name") || "";
+        if (name.includes(lowerQuery)) {
+            item.classList.remove("hidden");
+            matchCount++;
+        } else {
+            item.classList.add("hidden");
+        }
+    });
+}
+
+function clearDocumentFilter() {
+    const input = document.getElementById("doc-filter-input");
+    if (input) {
+        input.value = "";
+        filterDocuments("");
+    }
+}
+
+// --------------------------------------------------------------------------
 // Input Auto-Grow & Keyboard
-// ----------------------------------------------------
+// --------------------------------------------------------------------------
+function setupTextarea() {
+    const input = document.getElementById("question-input");
+    if (input) {
+        autoGrow(input);
+    }
+}
+
 function autoGrow(element) {
     element.style.height = "auto";
-    element.style.height = Math.min(element.scrollHeight, 140) + "px";
-    const charCount = document.getElementById("char-count");
-    if (charCount) {
-        charCount.textContent = `${element.value.length} chars`;
-    }
+    element.style.height = Math.min(element.scrollHeight, 180) + "px";
 }
 
 function handleKeyDown(event) {
@@ -66,9 +204,9 @@ function askPreset(promptText) {
     }
 }
 
-// ----------------------------------------------------
+// --------------------------------------------------------------------------
 // File Upload & Drag-and-Drop
-// ----------------------------------------------------
+// --------------------------------------------------------------------------
 function setupDropZone() {
     const dropZone = document.getElementById("drop-zone");
     const fileInput = document.getElementById("file-input");
@@ -87,7 +225,7 @@ function setupDropZone() {
         dropZone.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.add("border-brand-500", "bg-brand-50/50", "dark:bg-slate-800");
+            dropZone.classList.add("border-brand-500", "bg-brand-50/40", "dark:bg-brand-950/20", "scale-[1.01]");
         });
     });
 
@@ -95,7 +233,7 @@ function setupDropZone() {
         dropZone.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.remove("border-brand-500", "bg-brand-50/50", "dark:bg-slate-800");
+            dropZone.classList.remove("border-brand-500", "bg-brand-50/40", "dark:bg-brand-950/20", "scale-[1.01]");
         });
     });
 
@@ -112,7 +250,11 @@ async function handleFileUpload(file) {
     const fileInput = document.getElementById("file-input");
 
     statusBox.classList.remove("hidden");
-    statusText.textContent = `Processing '${file.name}'...`;
+    statusText.innerHTML = `
+        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-brand-500"></i>
+        <span class="truncate max-w-[200px]">Parsing '${file.name}'...</span>
+    `;
+    lucide.createIcons();
 
     const formData = new FormData();
     formData.append("file", file);
@@ -126,16 +268,18 @@ async function handleFileUpload(file) {
         const result = await response.json();
 
         if (result.success) {
-            statusText.textContent = `✓ Indexed ${result.filename} (${result.chunks_count} chunks)`;
-            renderDocumentList(result.documents);
+            showToast(`Indexed ${result.filename} (${result.chunks_count} chunks)`, "success");
+            renderDocumentList(result.documents_detailed || []);
             setTimeout(() => {
                 statusBox.classList.add("hidden");
-            }, 3500);
+            }, 1200);
         } else {
-            statusText.textContent = `✗ ${result.error || "Upload failed"}`;
+            showToast(result.error || "Upload failed", "error");
+            statusBox.classList.add("hidden");
         }
     } catch (err) {
-        statusText.textContent = `✗ Error: ${err.message}`;
+        showToast("Upload error: " + err.message, "error");
+        statusBox.classList.add("hidden");
     } finally {
         fileInput.value = "";
     }
@@ -143,55 +287,103 @@ async function handleFileUpload(file) {
 
 function renderDocumentList(documents) {
     const list = document.getElementById("document-list");
-    const docCount = document.getElementById("doc-count");
-    const headerBadge = document.getElementById("header-doc-badge");
+    const docCountBadge = document.getElementById("doc-count-badge");
+    const headerDocCount = document.getElementById("header-doc-count");
+    const totalChunksCount = document.getElementById("total-chunks-count");
+    const inputDocStatus = document.getElementById("input-doc-status");
 
     if (!list) return;
 
-    if (docCount) docCount.textContent = documents.length;
-    if (headerBadge) headerBadge.textContent = `${documents.length} doc(s) indexed`;
+    const count = documents.length;
+    const totalChunks = documents.reduce((sum, d) => sum + (d.chunks || 0), 0);
 
-    if (documents.length === 0) {
-        list.innerHTML = `<li id="no-docs-item" class="text-xs text-slate-400 dark:text-slate-500 italic py-4 text-center">No documents uploaded yet.</li>`;
+    if (docCountBadge) docCountBadge.textContent = count;
+    if (headerDocCount) headerDocCount.textContent = count;
+    if (totalChunksCount) totalChunksCount.textContent = totalChunks;
+    if (inputDocStatus) inputDocStatus.textContent = `${count} doc(s) in context`;
+
+    if (count === 0) {
+        list.innerHTML = `
+            <li id="no-docs-item" class="text-xs text-slate-400 dark:text-zinc-500 italic py-8 text-center flex flex-col items-center">
+                <i data-lucide="file-plus" class="w-8 h-8 text-slate-300 dark:text-zinc-700 mb-2"></i>
+                <span>No documents indexed yet.</span>
+                <span class="text-[11px] mt-1 text-slate-400 dark:text-zinc-600">Upload documents above to begin.</span>
+            </li>
+        `;
+        lucide.createIcons();
         return;
     }
 
-    list.innerHTML = documents.map(doc => `
-        <li class="group flex items-center justify-between p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700/80 transition-colors" data-source="${escapeHtml(doc)}">
-            <div class="flex items-center space-x-2.5 overflow-hidden">
-                <i data-lucide="file-text" class="w-4 h-4 text-brand-500 flex-shrink-0"></i>
-                <span class="text-xs font-medium text-slate-800 dark:text-slate-200 truncate max-w-[190px]" title="${escapeHtml(doc)}">${escapeHtml(doc)}</span>
-            </div>
-            <button onclick="deleteDocument('${escapeHtml(doc)}')" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 p-1 rounded transition-opacity" title="Remove document">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            </button>
-        </li>
-    `).join("");
+    list.innerHTML = documents.map(doc => {
+        const ext = doc.name.split('.').pop().toLowerCase();
+        let badgeColor = "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
+        let label = "TXT";
+
+        if (ext === "pdf") {
+            badgeColor = "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
+            label = "PDF";
+        } else if (ext === "docx") {
+            badgeColor = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+            label = "DOC";
+        } else if (ext === "xlsx") {
+            badgeColor = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+            label = "XLS";
+        } else if (ext === "pptx") {
+            badgeColor = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+            label = "PPT";
+        }
+
+        return `
+            <li class="doc-item group flex items-center justify-between p-2 rounded-xl bg-white dark:bg-dark-surface/80 border border-slate-200/60 dark:border-dark-border/80 hover:border-brand-500/50 dark:hover:border-brand-500/50 hover:shadow-sm transition-all" data-name="${escapeHtml(doc.name.toLowerCase())}">
+                <div class="flex items-center space-x-2.5 overflow-hidden flex-1 min-w-0 pr-2">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold border ${badgeColor}">
+                        ${label}
+                    </div>
+                    <div class="flex flex-col min-w-0 flex-1">
+                        <span class="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</span>
+                        <span class="text-[10px] font-mono text-slate-400 dark:text-zinc-500">${doc.chunks || 0} chunks indexed</span>
+                    </div>
+                </div>
+                <button onclick="confirmDeleteDocument('${escapeHtml(doc.name)}')" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" title="Delete document">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+            </li>
+        `;
+    }).join("");
 
     lucide.createIcons();
 }
 
-async function deleteDocument(sourceName) {
-    if (!confirm(`Delete "${sourceName}" and all its searchable vectors?`)) return;
+function confirmDeleteDocument(sourceName) {
+    showModal({
+        title: "Delete Document",
+        message: `Are you sure you want to delete "${sourceName}"? All its vector embeddings and search chunks will be permanently removed from ChromaDB.`,
+        confirmText: "Delete",
+        confirmClass: "bg-rose-600 hover:bg-rose-700",
+        onConfirm: () => deleteDocument(sourceName)
+    });
+}
 
+async function deleteDocument(sourceName) {
     try {
         const response = await fetch(`/api/documents/${encodeURIComponent(sourceName)}`, {
             method: "DELETE",
         });
         const result = await response.json();
         if (result.success) {
-            renderDocumentList(result.documents);
+            showToast(`Deleted '${sourceName}'`, "info");
+            renderDocumentList(result.documents_detailed || []);
         } else {
-            alert(result.error || "Failed to delete document.");
+            showToast(result.error || "Failed to delete document.", "error");
         }
     } catch (err) {
-        alert("Error deleting document: " + err.message);
+        showToast("Error deleting document: " + err.message, "error");
     }
 }
 
-// ----------------------------------------------------
-// Chat & Q&A
-// ----------------------------------------------------
+// --------------------------------------------------------------------------
+// Chat & Q&A Controller
+// --------------------------------------------------------------------------
 async function submitQuestion(event) {
     if (event) event.preventDefault();
 
@@ -199,7 +391,7 @@ async function submitQuestion(event) {
     const question = input.value.trim();
     if (!question) return;
 
-    // Reset input
+    // Reset input and height
     input.value = "";
     autoGrow(input);
 
@@ -208,10 +400,10 @@ async function submitQuestion(event) {
     if (welcome) welcome.classList.add("hidden");
 
     // Append user message
-    appendMessage("user", question);
+    appendUserMessage(question);
 
-    // Append loading skeleton
-    const loadingId = appendLoadingIndicator();
+    // Append loading shimmer state
+    const loadingId = appendLoadingSkeleton();
     scrollToBottom();
 
     // Disable send button while answering
@@ -227,86 +419,174 @@ async function submitQuestion(event) {
 
         const data = await response.json();
 
-        // Remove loading
-        removeLoadingIndicator(loadingId);
+        // Remove loading state
+        removeLoadingSkeleton(loadingId);
 
         if (data.success) {
-            appendMessage("assistant", data.answer, data.sources);
+            appendAssistantMessage(data.answer, data.sources);
         } else {
-            appendMessage("assistant", `⚠️ **Error:** ${data.error || "Something went wrong."}`);
+            appendAssistantMessage(`⚠️ **Error:** ${data.error || "Something went wrong."}`);
         }
     } catch (err) {
-        removeLoadingIndicator(loadingId);
-        appendMessage("assistant", `⚠️ **Network Error:** ${err.message}`);
+        removeLoadingSkeleton(loadingId);
+        appendAssistantMessage(`⚠️ **Network Error:** ${err.message}`);
     } finally {
         if (sendBtn) sendBtn.disabled = false;
         scrollToBottom();
     }
 }
 
-function appendMessage(role, text, sources = []) {
+function appendUserMessage(text) {
     const container = document.getElementById("messages-container");
     if (!container) return;
 
-    const messageDiv = document.createElement("div");
-    messageDiv.className = `flex ${role === "user" ? "justify-end" : "justify-start"} max-w-4xl mx-auto w-full`;
+    const div = document.createElement("div");
+    div.className = "flex justify-end max-w-4xl mx-auto w-full";
 
-    if (role === "user") {
-        messageDiv.innerHTML = `
-            <div class="max-w-2xl bg-brand-600 text-white rounded-2xl rounded-br-sm px-4 py-3 shadow-sm text-sm">
-                <p class="whitespace-pre-wrap">${escapeHtml(text)}</p>
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    div.innerHTML = `
+        <div class="flex items-end space-x-2 max-w-2xl">
+            <div class="flex flex-col items-end">
+                <div class="bg-gradient-to-br from-brand-600 to-indigo-700 text-white rounded-2xl rounded-br-sm px-4 py-3 shadow-sm text-sm leading-relaxed border border-brand-500/20">
+                    <p class="whitespace-pre-wrap">${escapeHtml(text)}</p>
+                </div>
+                <span class="text-[10px] text-slate-400 dark:text-zinc-500 mt-1 font-mono">${timestamp}</span>
             </div>
-        `;
-    } else {
-        const htmlContent = marked.parse(text);
-        let sourcesHtml = "";
+            <div class="w-7 h-7 rounded-lg bg-slate-200 dark:bg-dark-surface text-slate-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs flex-shrink-0 mb-4">
+                U
+            </div>
+        </div>
+    `;
 
-        if (sources && sources.length > 0) {
-            sourcesHtml = `
-                <div class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-                    <button onclick="toggleSources(this)" class="flex items-center space-x-1.5 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+    container.appendChild(div);
+    scrollToBottom();
+}
+
+function appendAssistantMessage(text, sources = []) {
+    const container = document.getElementById("messages-container");
+    if (!container) return;
+
+    const div = document.createElement("div");
+    div.className = "flex justify-start max-w-4xl mx-auto w-full";
+
+    const rawHtml = marked.parse(text);
+    const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const messageId = "msg-" + Date.now();
+
+    let sourcesHtml = "";
+    if (sources && sources.length > 0) {
+        sourcesHtml = `
+            <div class="mt-4 pt-3.5 border-t border-slate-200/80 dark:border-dark-border">
+                <button onclick="toggleSources(this)" class="flex items-center space-x-2 text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors cursor-pointer group">
+                    <div class="p-1 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400">
                         <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-                        <span>Cited Sources (${sources.length})</span>
-                        <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
-                    </button>
-                    <div class="sources-panel hidden mt-2.5 space-y-2">
-                        ${sources.map((src, i) => `
-                            <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs">
-                                <div class="flex items-center justify-between font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    <span class="flex items-center space-x-1">
-                                        <i data-lucide="file" class="w-3 h-3 text-slate-400"></i>
-                                        <span class="truncate max-w-[200px]">${escapeHtml(src.source)} (p. ${escapeHtml(String(src.page))})</span>
-                                    </span>
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
-                                        score: ${src.score}
-                                    </span>
+                    </div>
+                    <span>Cited Document Excerpts (${sources.length})</span>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-y-0.5"></i>
+                </button>
+                <div class="sources-panel hidden mt-3 grid grid-cols-1 gap-2">
+                    ${sources.map((src, i) => {
+                        const pct = Math.round((src.score || 0) * 100);
+                        const isHigh = pct >= 50;
+                        const scoreColor = isHigh ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
+                        const barColor = isHigh ? "bg-emerald-500" : "bg-blue-500";
+
+                        return `
+                            <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-dark-surface/60 border border-slate-200/60 dark:border-dark-border text-xs relative group">
+                                <div class="flex items-center justify-between font-medium text-slate-800 dark:text-zinc-200 mb-1.5">
+                                    <div class="flex items-center space-x-1.5 truncate max-w-[280px]">
+                                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        <span class="font-semibold truncate" title="${escapeHtml(src.source)}">${escapeHtml(src.source)}</span>
+                                        <span class="text-slate-400 dark:text-zinc-500 text-[10px]">p.${escapeHtml(String(src.page))}</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2 flex-shrink-0">
+                                        <div class="flex items-center space-x-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${scoreColor}">
+                                            <span>${pct}% match</span>
+                                        </div>
+                                        <button onclick="copySnippet(this, '${escapeHtml(src.snippet)}')" class="text-slate-400 hover:text-brand-500 p-1 rounded transition-colors cursor-pointer" title="Copy snippet">
+                                            <i data-lucide="copy" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                                <p class="text-slate-500 dark:text-slate-400 italic text-[11px] leading-relaxed">
+                                <p class="text-slate-600 dark:text-zinc-400 text-[11px] leading-relaxed italic border-l-2 border-slate-300 dark:border-zinc-700 pl-2 my-1">
                                     "${escapeHtml(src.snippet)}"
                                 </p>
                             </div>
-                        `).join("")}
-                    </div>
-                </div>
-            `;
-        }
-
-        messageDiv.innerHTML = `
-            <div class="flex items-start space-x-3 max-w-3xl">
-                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-primary-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
-                    <i data-lucide="bot" class="w-4 h-4"></i>
-                </div>
-                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-sm p-4 shadow-sm text-slate-800 dark:text-slate-200 w-full overflow-hidden">
-                    <div class="prose-chat">${htmlContent}</div>
-                    ${sourcesHtml}
+                        `;
+                    }).join("")}
                 </div>
             </div>
         `;
     }
 
-    container.appendChild(messageDiv);
+    div.innerHTML = `
+        <div class="flex items-start space-x-3 max-w-3xl w-full">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-glow-brand mt-0.5">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </div>
+            <div class="flex flex-col flex-1 min-w-0">
+                <div class="flex items-center space-x-2 mb-1.5">
+                    <span class="text-xs font-bold text-slate-900 dark:text-white">DocChat AI</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-dark-surface text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-dark-border">
+                        Grounded
+                    </span>
+                    <span class="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">${timestamp}</span>
+                </div>
+                <div class="bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl rounded-tl-sm p-4 md:p-5 shadow-soft dark:shadow-soft-dark text-slate-800 dark:text-zinc-200 w-full overflow-hidden">
+                    <div class="prose-chat" id="${messageId}">${sanitizedHtml}</div>
+                    ${sourcesHtml}
+                    <!-- Action Bar -->
+                    <div class="mt-3 pt-2.5 flex items-center justify-end space-x-2 text-[11px] text-slate-400 dark:text-zinc-500 border-t border-slate-100 dark:border-dark-border/40">
+                        <button onclick="copyAnswer('${messageId}')" class="flex items-center space-x-1 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-dark-surface hover:text-slate-700 dark:hover:text-zinc-200 transition-colors cursor-pointer" title="Copy full response">
+                            <i data-lucide="copy" class="w-3 h-3"></i>
+                            <span>Copy response</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(div);
     lucide.createIcons();
+    setupCodeBlockCopy(div);
     scrollToBottom();
+}
+
+function setupCodeBlockCopy(container) {
+    const preBlocks = container.querySelectorAll("pre");
+    preBlocks.forEach(pre => {
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "absolute top-2 right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer";
+        copyBtn.title = "Copy code";
+        copyBtn.innerHTML = `<i data-lucide="copy" class="w-3.5 h-3.5"></i>`;
+
+        copyBtn.onclick = () => {
+            const code = pre.querySelector("code")?.innerText || pre.innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                showToast("Code copied to clipboard!", "success");
+            });
+        };
+
+        pre.appendChild(copyBtn);
+    });
+    lucide.createIcons();
+}
+
+function copyAnswer(messageId) {
+    const el = document.getElementById(messageId);
+    if (!el) return;
+    navigator.clipboard.writeText(el.innerText).then(() => {
+        showToast("Answer copied to clipboard!", "success");
+    });
+}
+
+function copySnippet(btn, snippet) {
+    navigator.clipboard.writeText(snippet).then(() => {
+        showToast("Excerpt snippet copied!", "success");
+    });
 }
 
 function toggleSources(btn) {
@@ -320,20 +600,25 @@ function toggleSources(btn) {
     }
 }
 
-function appendLoadingIndicator() {
+function appendLoadingSkeleton() {
     const container = document.getElementById("messages-container");
     const id = "loading-" + Date.now();
     const div = document.createElement("div");
     div.id = id;
     div.className = "flex items-start space-x-3 max-w-3xl max-w-4xl mx-auto w-full";
     div.innerHTML = `
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-primary-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
-            <i data-lucide="bot" class="w-4 h-4"></i>
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-glow-brand mt-0.5">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
-            <div class="flex items-center space-x-3 py-1">
-                <div class="dot-flashing"></div>
-                <span class="text-xs text-slate-400 dark:text-slate-500 ml-4 font-medium">Searching documents & thinking...</span>
+        <div class="bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl rounded-tl-sm p-4 shadow-soft dark:shadow-soft-dark w-full max-w-md">
+            <div class="flex items-center space-x-2 text-xs font-semibold text-brand-600 dark:text-brand-400 mb-3">
+                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+                <span>Retrieving document context & synthesizing...</span>
+            </div>
+            <div class="space-y-2">
+                <div class="h-3 w-full rounded-full skeleton-shimmer"></div>
+                <div class="h-3 w-4/5 rounded-full skeleton-shimmer"></div>
+                <div class="h-3 w-2/3 rounded-full skeleton-shimmer"></div>
             </div>
         </div>
     `;
@@ -342,38 +627,75 @@ function appendLoadingIndicator() {
     return id;
 }
 
-function removeLoadingIndicator(id) {
+function removeLoadingSkeleton(id) {
     const el = document.getElementById(id);
     if (el) el.remove();
 }
 
-async function clearChat() {
-    if (!confirm("Are you sure you want to reset this chat conversation?")) return;
+function confirmClearChat() {
+    showModal({
+        title: "Reset Conversation Session",
+        message: "Are you sure you want to clear this conversation history? The active document index in ChromaDB will not be deleted.",
+        confirmText: "Reset Chat",
+        confirmClass: "bg-slate-900 dark:bg-zinc-100 dark:text-slate-900 hover:bg-slate-800",
+        onConfirm: clearChat
+    });
+}
 
+async function clearChat() {
     try {
         await fetch("/api/chat/clear", { method: "POST" });
+        showToast("Conversation history reset", "info");
+
         const container = document.getElementById("messages-container");
         container.innerHTML = `
-            <div id="welcome-card" class="max-w-xl mx-auto my-12 text-center p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-500 to-primary-500 mx-auto flex items-center justify-center text-white mb-4 shadow-lg">
-                    <i data-lucide="sparkles" class="w-7 h-7"></i>
+            <div id="welcome-card" class="max-w-2xl mx-auto my-8 md:my-14 text-center p-6 md:p-10 rounded-3xl bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border shadow-soft dark:shadow-soft-dark">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-600 mx-auto flex items-center justify-center text-white mb-5 shadow-glow-brand">
+                    <i data-lucide="sparkles" class="w-8 h-8"></i>
                 </div>
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Ask anything about your documents</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
-                    Chat session has been reset. Upload documents or ask a question to begin.
+                <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Chat with your documents
+                </h2>
+                <p class="text-sm text-slate-500 dark:text-zinc-400 mt-2.5 max-w-lg mx-auto leading-relaxed">
+                    Chat session has been reset. Upload documents or click a starter question below.
                 </p>
+
+                <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                    <button onclick="askPreset('Provide a structured executive summary of the uploaded document(s).')" class="p-3.5 rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50/70 dark:bg-dark-surface/50 hover:border-brand-500/60 hover:shadow-md text-slate-800 dark:text-zinc-200 transition-all group cursor-pointer">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="p-1.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-bold">Executive Summary</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 line-clamp-2">Summarize the core message and objectives.</p>
+                    </button>
+
+                    <button onclick="askPreset('What are the key statistics, figures, and numerical metrics mentioned?')" class="p-3.5 rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50/70 dark:bg-dark-surface/50 hover:border-brand-500/60 hover:shadow-md text-slate-800 dark:text-zinc-200 transition-all group cursor-pointer">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-xs font-bold">Key Figures & Metrics</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 line-clamp-2">Extract quantitative findings and measurements.</p>
+                    </button>
+                </div>
             </div>
         `;
         lucide.createIcons();
     } catch (err) {
-        alert("Error resetting chat: " + err.message);
+        showToast("Error resetting chat: " + err.message, "error");
     }
 }
 
 function scrollToBottom() {
     const container = document.getElementById("messages-container");
     if (container) {
-        container.scrollTop = container.scrollHeight;
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior: "smooth"
+        });
     }
 }
 
