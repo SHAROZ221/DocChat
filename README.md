@@ -1,180 +1,215 @@
-# DocChat — Intelligent Document Q&A (RAG)
+<div align="center">
 
-DocChat is a production-quality **Retrieval-Augmented Generation (RAG)** web application that enables users to have contextual, multi-turn conversations with their documents. 
+<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=32&duration=3000&pause=1000&color=00D1FF&center=true&vCenter=true&width=600&lines=%F0%9F%93%84+DocChat;Chat+With+Your+Documents;RAG-Powered+Q%26A" alt="Typing SVG" />
 
-DocChat processes documents locally, chunks them with sentence-boundary awareness, stores vector embeddings in **ChromaDB**, and leverages **Google's Gemini 2.5 Flash** for grounded answers with citations.
+### Retrieval-Augmented Q&A for Your Documents
+
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector%20Store-FF6B6B?style=flat-square)]()
+[![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)]()
+[![Status](https://img.shields.io/badge/Status-Active-00ff88?style=flat-square)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)]()
+
+<br/>
+
+> *A Python-based RAG application that lets you upload documents and have grounded, multi-turn conversations with them — with every answer traced back to the exact source chunk it came from.*
+
+</div>
 
 ---
 
-## Key Features
+## 🔍 What is DocChat?
 
-- **Multi-Format Ingestion**: Supports `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.txt`, and `.md` files.
-- **Multi-Document Sessions**: Upload multiple documents simultaneously and query across all of them in a single conversation.
-- **Local Embeddings**: Embeddings run locally via `sentence-transformers` (`all-MiniLM-L6-v2`) for free, offline vector computation without API rate limits or costs.
-- **Persistent Vector Store**: ChromaDB vector store retains indexed documents and cosine similarity indexes across server restarts.
-- **Grounded Answers & Citations**: Answers are strictly grounded in document excerpts with source names, page numbers, and similarity scores.
-- **Hallucination Prevention**: If a question cannot be answered from the document context, DocChat explicitly informs the user rather than fabricating information.
-- **Multi-Turn Chat History**: Retains session memory for follow-up questions and conversational continuity.
-- **Modern UI**: Clean, responsive interface featuring Dark/Light mode toggle, drag-and-drop file upload, collapsible source cards, and rendered Markdown with syntax highlighting.
+DocChat turns any document into something you can **talk to**. Upload a file, ask a question in plain English, and get an answer generated only from what's actually in the document — not the model's memory.
+
+- 📄 Upload a document → **Parsed, chunked, and embedded locally**
+- ❓ Ask a question → **Top-matching chunks retrieved via vector search**
+- 🤖 Answer generated → **Grounded strictly in retrieved context, with citations**
+- 🚫 Answer not in the document? → **DocChat says so instead of guessing**
+- 💬 Follow-up question? → **Chat history carries the conversation forward**
+
+This is the same core pattern (retrieve → augment → generate) behind production RAG systems like enterprise document search and internal knowledge-base assistants.
 
 ---
 
-## Architecture Overview
+## ⚙️ How It Works
 
 ```
-User Browser (Jinja2 + Tailwind CSS + JS)
-         │
-         ▼
-Flask Application Layer
-   ├── /api/upload ──> Document Parser (PyMuPDF, docx, pptx, openpyxl)
-   │                         │
-   │                         ▼
-   │                   Text Chunker (sentence boundary aware)
-   │                         │
-   │                         ▼
-   │                   Local Embedder (sentence-transformers)
-   │                         │
-   │                         ▼
-   │                   ChromaDB Vector Store (cosine distance index)
-   │
-   └── /api/chat ───> Retriever (top-k semantic search)
-                             │
-                             ▼
-                      Prompt Builder (context + history + question)
-                             │
-                             ▼
-                      Gemini 2.5 Flash API
-                             │
-                             ▼
-                      Grounded Answer + Cited Sources
+Document Upload
+        │
+        ▼
+┌───────────────────┐
+│   Parse & Chunk    │──► Sentence-boundary-aware splitting
+└───────────────────┘
+        │
+        ▼
+┌───────────────────┐
+│  Embed & Store      │──► Local embeddings → ChromaDB (cosine index)
+└───────────────────┘
+
+User Question
+        │
+        ▼
+┌───────────────────┐
+│  Retrieve Top-K     │──► Semantic search over stored chunks
+└───────────────────┘
+        │
+        ▼
+┌───────────────────┐
+│  Build Prompt        │──► Context + chat history + question
+└───────────────────┘
+        │
+        ▼
+   Gemini 2.5 Flash ✅ → Grounded Answer + Cited Sources
 ```
+
+Every answer is generated strictly from retrieved chunks — no source, no answer, just an honest "not found in the documents."
 
 ---
 
-## Tech Stack
+## 📁 Supported Formats
 
-| Component | Technology | Rationale |
-|---|---|---|
-| **LLM** | Google Gemini 2.5 Flash (`google-genai`) | High reasoning capability, low latency, generous free tier |
-| **Embeddings** | `sentence-transformers` (`all-MiniLM-L6-v2`) | Free, runs locally, 384-dimensional dense vectors |
-| **Vector Database** | ChromaDB | Lightweight, persistent, built-in cosine similarity |
-| **Web Framework** | Flask 3 | Lightweight, flexible, Pythonic |
-| **Document Parsers** | PyMuPDF, python-docx, python-pptx, openpyxl | Broad multi-format support |
-| **Frontend** | HTML5, Tailwind CSS, Lucide Icons, Marked.js | Clean, fast, modern, responsive UI |
-
----
-
-## Project Structure
-
-```
-Doc Chat/
-├── app/
-│   ├── __init__.py               # Flask app factory & service singletons
-│   ├── config.py                 # Environment and application configuration
-│   ├── routes/
-│   │   ├── __init__.py
-│   │   ├── main.py               # Main UI route
-│   │   ├── upload.py             # File upload and document management routes
-│   │   └── chat.py               # Q&A retrieval and conversation routes
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── parser.py             # Multi-format document text extraction
-│   │   ├── chunker.py            # Sentence-aware text chunker with overlap
-│   │   ├── embedder.py           # Local sentence-transformers embedder
-│   │   ├── vectorstore.py        # ChromaDB client and cosine search
-│   │   ├── retriever.py          # Top-k chunk retrieval orchestrator
-│   │   ├── llm.py                # Gemini 2.5 client with RAG prompting
-│   │   └── chat_session.py       # Multi-turn session state manager
-│   ├── static/
-│   │   ├── css/
-│   │   │   └── styles.css        # Custom styles, animations, scrollbars
-│   │   └── js/
-│   │       └── chat.js           # AJAX handlers, UI rendering, drag-and-drop
-│   ├── templates/
-│   │   ├── base.html             # Base HTML with Tailwind and scripts
-│   │   └── index.html            # Main chat interface & sidebar
-│   └── uploads/                  # Uploaded files directory (gitignored)
-├── doc/                          # Project discovery & specifications
-├── tests/
-│   ├── __init__.py
-│   ├── test_chunker.py           # Unit tests for text chunker
-│   ├── test_parser.py            # Unit tests for document parser
-│   └── test_chat_session.py      # Unit tests for session manager
-├── .env.example                  # Template for environment configuration
-├── .gitignore                    # Git ignore file
-├── requirements.txt              # Project dependencies
-├── run.py                        # Application entry point
-└── README.md                     # Documentation
-```
+| Format | Extension | Parser |
+|---|---|:---:|
+| PDF | `.pdf` | PyMuPDF |
+| Word Document | `.docx` | python-docx |
+| PowerPoint | `.pptx` | python-pptx |
+| Excel Spreadsheet | `.xlsx` | openpyxl |
+| Plain Text | `.txt` | built-in |
+| Markdown | `.md` | built-in |
 
 ---
 
-## Quick Start
+## 💬 Chat Interface
 
-### 1. Prerequisites
+> Local App → **[localhost:5000](http://127.0.0.1:5000)**
 
-- Python 3.10+ (tested on Python 3.10, 3.11, 3.12, 3.14)
-- Google AI Studio Gemini API Key ([Get one free here](https://aistudio.google.com/apikey))
+The interface shows in real time:
 
-### 2. Setup Virtual Environment
+- 📂 **Document sidebar** — uploaded files with drag-and-drop upload and per-file delete
+- 💭 **Chat thread** — user/assistant message bubbles with markdown rendering
+- 📎 **Source cards** — collapsible citations showing source file, page, and similarity score
+- 🌙 **Dark/light toggle** — theme preference persisted locally
+- 🔁 **Multi-turn memory** — follow-up questions resolved using chat history
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.10+
+- Gemini API key ([get one free](https://aistudio.google.com/apikey))
+
+### Installation
 
 ```bash
-# Clone or navigate to the repository
-cd "Doc Chat"
+# 1. Clone the repository
+git clone https://github.com/SHAROZ221/DocChat.git
+cd DocChat
 
-# Create a virtual environment
-python -m venv .venv
+# 2. Create and activate a virtual environment
+python -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
 
-# Activate the virtual environment
-# On Windows (PowerShell):
-.\.venv\Scripts\Activate.ps1
-# On macOS/Linux:
-source .venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
-```
 
-### 4. Configure Environment Variables
-
-Create a `.env` file from the example:
-
-```bash
+# 4. Configure your API key
 cp .env.example .env
-```
+# → edit .env and add your GEMINI_API_KEY
 
-Edit `.env` and insert your Gemini API key:
-
-```env
-GEMINI_API_KEY=AIzaSy...your_gemini_api_key_here
-```
-
-### 5. Run the Application
-
-```bash
+# 5. Run the app
 python run.py
-```
 
-Open your browser and navigate to:
-```
-http://127.0.0.1:5000
-```
-
----
-
-## Running Tests
-
-Run the test suite using `pytest`:
-
-```bash
-python -m pytest tests/ -v
+# 6. Open the app
+# → http://127.0.0.1:5000
 ```
 
 ---
 
-## License
+## 📁 Project Structure
 
-MIT License. Free for learning, modification, and portfolio use.
+```
+DocChat/
+├── app/
+│   ├── __init__.py        → Flask app factory & service singletons
+│   ├── config.py           → Environment and app configuration
+│   ├── routes/
+│   │   ├── main.py         → Main UI route
+│   │   ├── upload.py       → File upload & document management
+│   │   └── chat.py         → Q&A retrieval and conversation routes
+│   ├── services/
+│   │   ├── parser.py       → Multi-format document text extraction
+│   │   ├── chunker.py      → Sentence-aware chunking with overlap
+│   │   ├── embedder.py     → Local sentence-transformers embedder
+│   │   ├── vectorstore.py  → ChromaDB client & cosine search
+│   │   ├── retriever.py    → Top-k chunk retrieval orchestrator
+│   │   ├── llm.py           → Gemini client with RAG prompting
+│   │   └── chat_session.py → Multi-turn session state manager
+│   ├── static/              → CSS & JS (AJAX, drag-and-drop, theming)
+│   ├── templates/           → Jinja2 chat interface
+│   └── uploads/             → Uploaded files (gitignored)
+├── tests/                   → Unit tests (parser, chunker, sessions)
+├── .env.example              → Environment variable template
+├── requirements.txt          → Python dependencies
+├── run.py                    → Application entry point
+└── README.md
+```
+
+---
+
+## 🧰 Built With
+
+| Technology | Purpose |
+|---|---|
+| **Python 3.10+** | Core language |
+| **Flask 3** | Web server and routing |
+| **sentence-transformers** | Local, free text embeddings |
+| **ChromaDB** | Persistent vector store, cosine similarity |
+| **Gemini 2.5 Flash** | Grounded answer generation |
+| **PyMuPDF / python-docx / python-pptx / openpyxl** | Multi-format document parsing |
+| **Tailwind CSS** | Frontend styling |
+
+---
+
+## 🧪 Try It Locally
+
+Upload any document and try questions like:
+
+```
+"Summarize the key points of this document"
+"What does section 3 say about pricing?"
+"Does this mention anything about deadlines?"
+```
+
+Then ask something that isn't in the document at all — DocChat should tell you it can't find the answer instead of making one up.
+
+---
+
+## 🎯 Learning Outcomes
+
+Building this project covers core GenAI/LLM engineering skills:
+
+- ✅ Document parsing across multiple file formats
+- ✅ Chunking strategy and why overlap matters for retrieval quality
+- ✅ Embedding generation and vector similarity search
+- ✅ Retrieval-augmented prompt construction
+- ✅ Hallucination control via strict context-grounding
+- ✅ Multi-turn conversational state management
+- ✅ End-to-end RAG pipeline, from raw file to cited answer
+
+---
+
+<div align="center">
+
+Made with 🤖 by **[Sharoz](https://github.com/SHAROZ221)**
+
+BCA Final Year · GenAI/LLM Application Engineering · India
+
+[![GitHub](https://img.shields.io/badge/GitHub-SHAROZ221-181717?style=flat-square&logo=github)](https://github.com/SHAROZ221)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Sharoz_Mohd-0077B5?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/sharoz-mohd-86057a408/)
+
+*"Retrieve • Ground • Answer"*
+
+</div>
