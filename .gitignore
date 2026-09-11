@@ -19,8 +19,9 @@ chroma_db/
 *.chroma
 doc/
 
-# IDE
+# IDE & Assistant
 .vscode/
 .idea/
+.agent/
 *.swp
 *.swo
