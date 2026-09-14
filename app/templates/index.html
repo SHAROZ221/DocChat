@@ -1,304 +1,295 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex h-full w-full overflow-hidden relative">
-    <!-- Mobile Sidebar Backdrop -->
-    <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/50 z-20 md:hidden hidden transition-opacity"></div>
+<div class="flex flex-col h-full w-full overflow-hidden relative">
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="w-80 md:w-88 lg:w-96 flex-shrink-0 bg-white dark:bg-dark-card border-r border-slate-200/80 dark:border-dark-border flex flex-col h-full z-30 transition-all duration-300 md:relative fixed inset-y-0 left-0 -translate-x-full md:translate-x-0 shadow-xl md:shadow-none">
-        <!-- Sidebar Header -->
-        <div class="p-4 border-b border-slate-200/80 dark:border-dark-border flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-glow-brand">
-                    <i data-lucide="layers" class="w-5 h-5"></i>
+    <!-- Top Navigation Bar & Document Ribbon -->
+    <header class="h-14 border-b border-studio-border dark:border-studio-darkBorder bg-studio-card/85 dark:bg-studio-darkCard/85 backdrop-blur-md px-4 md:px-6 flex items-center justify-between flex-shrink-0 z-30">
+        <!-- Left: Logo & Project Identity -->
+        <div class="flex items-center space-x-3 sm:space-x-4">
+            <a href="/" class="flex items-center space-x-2.5 group cursor-pointer">
+                <div class="w-8 h-8 rounded-lg bg-studio-ink dark:bg-studio-darkInk text-white dark:text-studio-darkBg flex items-center justify-center font-bold text-sm shadow-studio-sm group-hover:opacity-90 transition-opacity">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
                 </div>
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <h1 class="font-bold text-base tracking-tight text-slate-900 dark:text-white">DocChat</h1>
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
-                            RAG
-                        </span>
-                    </div>
-                    <p class="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">Document Intelligence</p>
+                <div class="flex items-center space-x-2">
+                    <span class="font-bold text-sm tracking-tight text-studio-ink dark:text-studio-darkInk">
+                        DocChat
+                    </span>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium studio-pill">
+                        STUDIO
+                    </span>
                 </div>
-            </div>
+            </a>
 
-            <!-- Close button for mobile -->
-            <button onclick="toggleMobileSidebar()" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-dark-surface cursor-pointer">
-                <i data-lucide="x" class="w-5 h-5"></i>
+            <!-- Divider -->
+            <div class="hidden sm:block h-4 w-px bg-studio-border dark:bg-studio-darkBorder"></div>
+
+            <!-- Active Documents Status Pill (Click opens Knowledge Drawer) -->
+            <button onclick="openLibraryDrawer()" class="flex items-center space-x-2 px-2.5 py-1 rounded-lg studio-pill hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors cursor-pointer text-xs font-medium" title="Open Document Knowledge Base">
+                <span class="w-2 h-2 rounded-full {% if documents %}bg-emerald-500{% else %}bg-amber-500{% endif %}"></span>
+                <span id="header-doc-badge">
+                    <span id="header-doc-count" class="font-semibold text-studio-ink dark:text-studio-darkInk">{{ documents|length }}</span> doc(s) in context
+                </span>
             </button>
         </div>
 
-        <!-- Upload Zone -->
-        <div class="p-4 border-b border-slate-200/80 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/40">
-            <div id="drop-zone" class="border-2 border-dashed border-slate-300 dark:border-dark-border hover:border-brand-500 dark:hover:border-brand-500 rounded-xl p-4 text-center cursor-pointer transition-all bg-white dark:bg-dark-surface/60 group hover:shadow-sm">
-                <input type="file" id="file-input" class="hidden" accept=".pdf,.txt,.md,.docx,.pptx,.xlsx">
-                <div class="flex flex-col items-center">
-                    <div class="w-10 h-10 rounded-full bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-sm">
-                        <i data-lucide="cloud-upload" class="w-5 h-5"></i>
-                    </div>
-                    <p class="text-xs font-semibold text-slate-800 dark:text-zinc-200">
-                        Drop files here, or <span class="text-brand-600 dark:text-brand-400 underline underline-offset-2">browse</span>
-                    </p>
-                    <div class="flex flex-wrap justify-center gap-1 mt-2">
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-mono font-medium">PDF</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono font-medium">DOCX</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-medium">XLSX</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-mono font-medium">PPTX</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-mono font-medium">MD/TXT</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Upload progress bar -->
-            <div id="upload-status" class="hidden mt-3 p-2.5 rounded-lg bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border text-xs">
-                <div class="flex items-center justify-between font-medium mb-1.5 text-slate-700 dark:text-zinc-300">
-                    <span id="upload-status-text" class="truncate max-w-[200px] flex items-center gap-1.5">
-                        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-brand-500"></i>
-                        <span>Processing file...</span>
-                    </span>
-                    <span id="upload-percentage" class="font-mono text-[11px] text-brand-600 dark:text-brand-400">Indexing</span>
-                </div>
-                <div class="w-full h-1.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div id="upload-progress-bar" class="h-full bg-brand-500 rounded-full w-2/3 animate-pulse"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Document Search & Header -->
-        <div class="px-4 pt-3 pb-2 flex items-center justify-between">
-            <div class="flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                <i data-lucide="folder-git-2" class="w-3.5 h-3.5"></i>
-                <span>Documents</span>
-                <span id="doc-count-badge" class="font-mono text-[11px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-dark-surface text-slate-600 dark:text-zinc-400">
+        <!-- Right Header Controls -->
+        <div class="flex items-center space-x-2 sm:space-x-2.5">
+            <!-- Open Knowledge Base Button -->
+            <button onclick="openLibraryDrawer()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium studio-card studio-card-interactive text-studio-ink dark:text-studio-darkInk cursor-pointer shadow-studio-sm">
+                <i data-lucide="folder-archive" class="w-3.5 h-3.5 text-studio-muted dark:text-studio-darkMuted"></i>
+                <span class="hidden sm:inline">Knowledge Base</span>
+                <span id="header-doc-counter-badge" class="font-mono text-[10px] px-1.5 py-0.2 rounded bg-studio-surface dark:bg-studio-darkSurface text-studio-muted dark:text-studio-darkMuted border border-studio-border dark:border-studio-darkBorder">
                     {{ documents|length }}
                 </span>
-            </div>
-            <span id="total-chunks-badge" class="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
-                <span id="total-chunks-count">{{ total_chunks }}</span> chunks
-            </span>
-        </div>
+            </button>
 
-        <!-- Filter Input -->
-        <div class="px-4 pb-2">
-            <div class="relative">
-                <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input
-                    type="text"
-                    id="doc-filter-input"
-                    placeholder="Filter documents..."
-                    oninput="filterDocuments(this.value)"
-                    class="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-100/80 dark:bg-dark-surface border border-transparent focus:border-brand-500 dark:focus:border-brand-500 rounded-lg text-slate-800 dark:text-zinc-200 placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none transition-all"
-                >
-                <button id="clear-filter-btn" onclick="clearDocumentFilter()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 cursor-pointer">
-                    <i data-lucide="x" class="w-3 h-3"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Documents List -->
-        <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-1.5 custom-scrollbar" id="document-list-container">
-            <ul id="document-list" class="space-y-1.5">
-                {% if documents %}
-                    {% for doc in documents %}
-                    <li class="doc-item group flex items-center justify-between p-2 rounded-xl bg-white dark:bg-dark-surface/80 border border-slate-200/60 dark:border-dark-border/80 hover:border-brand-500/50 dark:hover:border-brand-500/50 hover:shadow-sm transition-all" data-name="{{ doc.name|lower }}">
-                        <div class="flex items-center space-x-2.5 overflow-hidden flex-1 min-w-0 pr-2">
-                            <!-- Extension Icon -->
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold
-                                {% if doc.name.endswith('.pdf') %} bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20
-                                {% elif doc.name.endswith('.docx') %} bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20
-                                {% elif doc.name.endswith('.xlsx') %} bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20
-                                {% elif doc.name.endswith('.pptx') %} bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20
-                                {% else %} bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20
-                                {% endif %}">
-                                {% if doc.name.endswith('.pdf') %}PDF
-                                {% elif doc.name.endswith('.docx') %}DOC
-                                {% elif doc.name.endswith('.xlsx') %}XLS
-                                {% elif doc.name.endswith('.pptx') %}PPT
-                                {% else %}TXT
-                                {% endif %}
-                            </div>
-                            <div class="flex flex-col min-w-0 flex-1">
-                                <span class="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate" title="{{ doc.name }}">{{ doc.name }}</span>
-                                <span class="text-[10px] font-mono text-slate-400 dark:text-zinc-500">{{ doc.chunks }} chunks indexed</span>
-                            </div>
-                        </div>
-                        <button onclick="confirmDeleteDocument('{{ doc.name }}')" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" title="Delete document">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </li>
-                    {% endfor %}
-                {% else %}
-                    <li id="no-docs-item" class="text-xs text-slate-400 dark:text-zinc-500 italic py-8 text-center flex flex-col items-center">
-                        <i data-lucide="file-plus" class="w-8 h-8 text-slate-300 dark:text-zinc-700 mb-2"></i>
-                        <span>No documents indexed yet.</span>
-                        <span class="text-[11px] mt-1 text-slate-400 dark:text-zinc-600">Upload documents above to begin.</span>
-                    </li>
-                {% endif %}
-            </ul>
-        </div>
-
-        <!-- Sidebar Footer -->
-        <div class="p-3 border-t border-slate-200/80 dark:border-dark-border bg-slate-50/50 dark:bg-dark-bg/60 space-y-2.5">
-            <!-- Model Pipeline Info -->
-            <div class="p-2 rounded-lg bg-white dark:bg-dark-surface border border-slate-200/60 dark:border-dark-border text-[11px] space-y-1">
-                <div class="flex items-center justify-between text-slate-600 dark:text-zinc-400">
-                    <span class="flex items-center gap-1 font-medium">
-                        <i data-lucide="cpu" class="w-3 h-3 text-brand-500"></i>
-                        <span>LLM</span>
-                    </span>
-                    <span class="font-mono text-slate-900 dark:text-zinc-200 font-semibold">{{ model_name }}</span>
-                </div>
-                <div class="flex items-center justify-between text-slate-600 dark:text-zinc-400">
-                    <span class="flex items-center gap-1 font-medium">
-                        <i data-lucide="database" class="w-3 h-3 text-emerald-500"></i>
-                        <span>Store</span>
-                    </span>
-                    <span class="font-mono text-slate-900 dark:text-zinc-200 font-semibold">ChromaDB (Cosine)</span>
-                </div>
+            <!-- Model Badge -->
+            <div class="hidden md:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg studio-pill text-xs font-mono text-studio-muted dark:text-studio-darkMuted">
+                <i data-lucide="sparkle" class="w-3 h-3 text-indigo-500"></i>
+                <span>{{ model_name }}</span>
             </div>
 
-            <!-- Clear Chat Button -->
-            <button onclick="confirmClearChat()" class="w-full flex items-center justify-center space-x-2 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-dark-border transition-colors cursor-pointer">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Reset Chat Session</span>
+            <!-- Reset Chat Button -->
+            <button onclick="confirmClearChat()" class="p-2 rounded-lg studio-pill hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-300 dark:hover:border-rose-900 transition-colors cursor-pointer" title="Reset Conversation Session">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Theme Toggle -->
+            <button id="theme-toggle" class="p-2 rounded-lg studio-pill hover:text-studio-ink dark:hover:text-studio-darkInk transition-colors cursor-pointer" title="Toggle Dark/Light Mode">
+                <i data-lucide="moon" id="theme-icon" class="w-4 h-4"></i>
             </button>
         </div>
-    </aside>
+    </header>
 
-    <!-- Main Chat View -->
-    <main class="flex-1 flex flex-col h-full bg-slate-100/50 dark:bg-dark-bg relative overflow-hidden min-w-0">
-        <!-- Top Navigation Bar -->
-        <header class="h-16 border-b border-slate-200/80 dark:border-dark-border bg-white/80 dark:bg-dark-card/80 backdrop-blur-md px-4 md:px-6 flex items-center justify-between flex-shrink-0 z-10">
-            <div class="flex items-center space-x-3">
-                <!-- Mobile sidebar toggle -->
-                <button onclick="toggleMobileSidebar()" class="md:hidden p-2 rounded-xl text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-dark-surface cursor-pointer" title="Toggle Document Sidebar">
-                    <i data-lucide="panel-left" class="w-5 h-5"></i>
-                </button>
+    <!-- Main Workspace Container -->
+    <div class="flex-1 flex overflow-hidden relative">
 
-                <div class="flex items-center space-x-2">
-                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-glow-emerald"></div>
-                    <span class="text-sm font-bold text-slate-900 dark:text-white">Workspace</span>
+        <!-- Main Chat Canvas (Distraction-Free Centered View) -->
+        <main class="flex-1 flex flex-col h-full relative overflow-hidden min-w-0 z-10 bg-studio-bg dark:bg-studio-darkBg">
+            <!-- Scrollable Messages Area -->
+            <div id="messages-container" class="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6 custom-scrollbar">
+                
+                <!-- Welcome State (Clean Notion / Apple Paper Aesthetic) -->
+                <div id="welcome-card" class="max-w-xl mx-auto my-12 md:my-20 text-center">
+                    <div class="w-12 h-12 rounded-xl bg-studio-ink dark:bg-studio-darkInk text-white dark:text-studio-darkBg mx-auto flex items-center justify-center mb-4 shadow-studio-sm">
+                        <i data-lucide="sparkles" class="w-6 h-6"></i>
+                    </div>
+                    <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-studio-ink dark:text-studio-darkInk">
+                        Grounded Document Intelligence
+                    </h1>
+                    <p class="text-sm text-studio-muted dark:text-studio-darkMuted mt-2 max-w-md mx-auto leading-relaxed">
+                        Upload your documents into the local vector index to extract semantic insights and synthesize answers with accurate citations.
+                    </p>
+
+                    <!-- Quick Knowledge Base CTA -->
+                    <div class="mt-6 flex items-center justify-center gap-3">
+                        <button onclick="openLibraryDrawer()" class="inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-studio-ink dark:bg-studio-darkInk text-white dark:text-studio-darkBg hover:opacity-90 transition-all cursor-pointer shadow-studio-sm">
+                            <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                            <span>Manage & Upload Documents</span>
+                        </button>
+                        <span class="text-xs text-studio-muted dark:text-studio-darkMuted font-mono">
+                            {{ documents|length }} doc(s) active
+                        </span>
+                    </div>
                 </div>
-                <span id="header-doc-badge" class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-slate-100 dark:bg-dark-surface text-slate-600 dark:text-zinc-400 border border-slate-200/60 dark:border-dark-border">
-                    <span id="header-doc-count">{{ documents|length }}</span> doc(s) active
+            </div>
+
+            <!-- Bottom Floating Input Dock -->
+            <div class="p-4 md:px-8 pb-5 bg-gradient-to-t from-studio-bg via-studio-bg/95 to-transparent dark:from-studio-darkBg dark:via-studio-darkBg/95 flex-shrink-0 z-20">
+                <div class="max-w-3xl lg:max-w-4xl mx-auto">
+                    <form id="chat-form" onsubmit="submitQuestion(event)" class="relative studio-card rounded-2xl shadow-studio-card transition-all focus-within:border-studio-ink dark:focus-within:border-studio-darkInk">
+                        <!-- Text Area -->
+                        <textarea
+                            id="question-input"
+                            rows="1"
+                            placeholder="Ask a question grounded in your documents..."
+                            class="w-full pt-3.5 pb-11 pl-4 pr-14 text-sm bg-transparent text-studio-ink dark:text-studio-darkInk placeholder-studio-muted dark:placeholder-studio-darkMuted focus:outline-none resize-none max-h-40 overflow-y-auto custom-scrollbar leading-relaxed"
+                            onkeydown="handleKeyDown(event)"
+                            oninput="autoGrow(this)"
+                        ></textarea>
+
+                        <!-- Bottom Controls Inside Input Box -->
+                        <div class="absolute bottom-2.5 left-4 right-2.5 flex items-center justify-between pointer-events-none">
+                            <!-- Context / Document Status -->
+                            <div class="pointer-events-auto flex items-center space-x-2 text-[11px] text-studio-muted dark:text-studio-darkMuted">
+                                <button type="button" onclick="openLibraryDrawer()" class="flex items-center gap-1 hover:text-studio-ink dark:hover:text-studio-darkInk transition-colors cursor-pointer">
+                                    <i data-lucide="database" class="w-3 h-3"></i>
+                                    <span id="input-doc-status">{{ documents|length }} doc(s) in context</span>
+                                </button>
+                                <span class="hidden sm:inline text-stone-300 dark:text-stone-700">•</span>
+                                <span class="hidden sm:inline text-[10px]">
+                                    <kbd class="px-1.5 py-0.5 studio-pill rounded text-studio-muted dark:text-studio-darkMuted font-mono">Enter ↵</kbd> to send
+                                </span>
+                            </div>
+
+                            <!-- Send Button -->
+                            <button
+                                type="submit"
+                                id="send-button"
+                                class="pointer-events-auto w-8 h-8 rounded-lg bg-studio-ink hover:bg-black dark:bg-studio-darkInk dark:hover:bg-white text-white dark:text-studio-darkBg active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none transition-all cursor-pointer flex items-center justify-center shadow-studio-sm"
+                                title="Send message (Enter)"
+                            >
+                                <i data-lucide="arrow-up" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="mt-2 text-center text-[10px] text-studio-muted dark:text-studio-darkMuted">
+                        DocChat Grounded RAG • Answers synthesized strictly from retrieved document excerpts.
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Slide-Over Backdrop Overlay -->
+        <div id="drawer-backdrop" onclick="closeLibraryDrawer()" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 hidden transition-opacity"></div>
+
+        <!-- Slide-Over Knowledge Base Drawer -->
+        <aside id="library-drawer" class="fixed inset-y-0 right-0 w-full sm:w-[420px] z-50 bg-studio-card dark:bg-studio-darkCard border-l border-studio-border dark:border-studio-darkBorder shadow-studio-drawer flex flex-col drawer-closed">
+            
+            <!-- Drawer Header -->
+            <div class="p-4 border-b border-studio-border dark:border-studio-darkBorder flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-studio-surface dark:bg-studio-darkSurface flex items-center justify-center text-studio-ink dark:text-studio-darkInk">
+                        <i data-lucide="folder-archive" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-sm text-studio-ink dark:text-studio-darkInk">Knowledge Base</h2>
+                        <p class="text-[11px] text-studio-muted dark:text-studio-darkMuted">Indexed Documents & Vectors</p>
+                    </div>
+                </div>
+
+                <button onclick="closeLibraryDrawer()" class="p-1.5 rounded-lg studio-pill hover:text-studio-ink dark:hover:text-studio-darkInk transition-colors cursor-pointer" title="Close Drawer (Esc)">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Upload Zone -->
+            <div class="p-4 border-b border-studio-border dark:border-studio-darkBorder bg-studio-surface/50 dark:bg-studio-darkSurface/30">
+                <div id="drop-zone" class="border-2 border-dashed border-studio-border dark:border-studio-darkBorder hover:border-studio-ink dark:hover:border-studio-darkInk rounded-xl p-4 text-center cursor-pointer group transition-all bg-studio-card dark:bg-studio-darkCard">
+                    <input type="file" id="file-input" class="hidden" accept=".pdf,.txt,.md,.docx,.pptx,.xlsx">
+                    <div class="flex flex-col items-center">
+                        <div class="w-9 h-9 rounded-lg bg-studio-surface dark:bg-studio-darkSurface text-studio-ink dark:text-studio-darkInk flex items-center justify-center mb-2 group-hover:scale-105 transition-transform border border-studio-border dark:border-studio-darkBorder">
+                            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-studio-ink dark:text-studio-darkInk">
+                            Drop documents here or <span class="underline underline-offset-2">browse</span>
+                        </p>
+                        <div class="flex flex-wrap justify-center gap-1 mt-2">
+                            <span class="text-[9px] px-1.5 py-0.5 rounded studio-pill font-mono font-bold">PDF</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded studio-pill font-mono font-bold">DOCX</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded studio-pill font-mono font-bold">XLSX</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded studio-pill font-mono font-bold">PPTX</span>
+                            <span class="text-[9px] px-1.5 py-0.5 rounded studio-pill font-mono font-bold">TXT/MD</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload progress bar -->
+                <div id="upload-status" class="hidden mt-3 p-3 rounded-xl studio-card text-xs">
+                    <div class="flex items-center justify-between font-medium mb-1.5 text-studio-ink dark:text-studio-darkInk">
+                        <span id="upload-status-text" class="truncate max-w-[220px] flex items-center gap-2">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-indigo-500"></i>
+                            <span>Indexing document...</span>
+                        </span>
+                        <span id="upload-percentage" class="font-mono text-[10px] px-1.5 py-0.5 rounded studio-pill font-bold">Processing</span>
+                    </div>
+                    <div class="w-full h-1 bg-studio-surface dark:bg-studio-darkSurface rounded-full overflow-hidden">
+                        <div id="upload-progress-bar" class="h-full bg-studio-ink dark:bg-studio-darkInk rounded-full w-2/3 animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Stats Bar -->
+            <div class="px-4 pt-3.5 pb-2 flex items-center justify-between">
+                <div class="flex items-center space-x-2 text-xs font-semibold text-studio-muted dark:text-studio-darkMuted">
+                    <span>Documents</span>
+                    <span id="doc-count-badge" class="font-mono text-[10px] px-1.5 py-0.5 rounded studio-pill font-bold">
+                        {{ documents|length }}
+                    </span>
+                </div>
+                <span id="total-chunks-badge" class="text-[11px] font-mono text-studio-muted dark:text-studio-darkMuted">
+                    <span id="total-chunks-count" class="font-semibold text-studio-ink dark:text-studio-darkInk">{{ total_chunks }}</span> vectors
                 </span>
             </div>
 
-            <!-- Right Header Controls -->
-            <div class="flex items-center space-x-2">
-                <!-- Theme Toggle -->
-                <button id="theme-toggle" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white bg-slate-100 dark:bg-dark-surface hover:bg-slate-200 dark:hover:bg-dark-hover transition-colors cursor-pointer" title="Toggle Dark/Light Mode">
-                    <i data-lucide="moon" id="theme-icon" class="w-4 h-4"></i>
-                </button>
-            </div>
-        </header>
-
-        <!-- Messages Area -->
-        <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 custom-scrollbar">
-            <!-- Welcome state if no messages -->
-            <div id="welcome-card" class="max-w-2xl mx-auto my-8 md:my-14 text-center p-6 md:p-10 rounded-3xl bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border shadow-soft dark:shadow-soft-dark">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-600 mx-auto flex items-center justify-center text-white mb-5 shadow-glow-brand">
-                    <i data-lucide="sparkles" class="w-8 h-8"></i>
-                </div>
-                <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Chat with your documents
-                </h2>
-                <p class="text-sm text-slate-500 dark:text-zinc-400 mt-2.5 max-w-lg mx-auto leading-relaxed">
-                    Upload documents on the left. DocChat indexes your files with local embeddings and provides grounded, factual answers with citations.
-                </p>
-
-                <!-- Suggested Prompt Starter Cards -->
-                <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-                    <button onclick="askPreset('Provide a structured executive summary of the uploaded document(s).')" class="p-3.5 rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50/70 dark:bg-dark-surface/50 hover:border-brand-500/60 hover:shadow-md text-slate-800 dark:text-zinc-200 transition-all group cursor-pointer">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="p-1.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">
-                                <i data-lucide="file-text" class="w-4 h-4"></i>
-                            </div>
-                            <span class="text-xs font-bold">Executive Summary</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 line-clamp-2">Summarize the core message and objectives.</p>
-                    </button>
-
-                    <button onclick="askPreset('What are the key statistics, figures, and numerical metrics mentioned?')" class="p-3.5 rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50/70 dark:bg-dark-surface/50 hover:border-brand-500/60 hover:shadow-md text-slate-800 dark:text-zinc-200 transition-all group cursor-pointer">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
-                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                            </div>
-                            <span class="text-xs font-bold">Key Figures & Metrics</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 line-clamp-2">Extract quantitative findings and measurements.</p>
-                    </button>
-
-                    <button onclick="askPreset('What are the primary recommendations or action items outlined?')" class="p-3.5 rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50/70 dark:bg-dark-surface/50 hover:border-brand-500/60 hover:shadow-md text-slate-800 dark:text-zinc-200 transition-all group cursor-pointer">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
-                                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
-                            </div>
-                            <span class="text-xs font-bold">Action Items</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 line-clamp-2">Identify next steps, tasks, and proposals.</p>
-                    </button>
-
-                    <button onclick="askPreset('Identify any potential risks, limitations, or constraints mentioned.')" class="p-3.5 rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50/70 dark:bg-dark-surface/50 hover:border-brand-500/60 hover:shadow-md text-slate-800 dark:text-zinc-200 transition-all group cursor-pointer">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
-                                <i data-lucide="shield-alert" class="w-4 h-4"></i>
-                            </div>
-                            <span class="text-xs font-bold">Risks & Constraints</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 line-clamp-2">Highlight caveats, edge cases, and warnings.</p>
+            <!-- Filter Input -->
+            <div class="px-4 pb-2.5">
+                <div class="relative">
+                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-studio-muted dark:text-studio-darkMuted"></i>
+                    <input
+                        type="text"
+                        id="doc-filter-input"
+                        placeholder="Filter documents..."
+                        oninput="filterDocuments(this.value)"
+                        class="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg studio-card text-studio-ink dark:text-studio-darkInk placeholder-studio-muted dark:placeholder-studio-darkMuted focus:outline-none focus:border-studio-ink dark:focus:border-studio-darkInk transition-all"
+                    >
+                    <button id="clear-filter-btn" onclick="clearDocumentFilter()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-studio-muted hover:text-studio-ink dark:hover:text-studio-darkInk cursor-pointer">
+                        <i data-lucide="x" class="w-3 h-3"></i>
                     </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Input Area (Perplexity / ChatGPT style floating bar) -->
-        <div class="p-4 md:p-6 bg-gradient-to-t from-slate-100 via-slate-100/90 to-transparent dark:from-dark-bg dark:via-dark-bg/90 dark:to-transparent flex-shrink-0">
-            <div class="max-w-4xl mx-auto">
-                <form id="chat-form" onsubmit="submitQuestion(event)" class="relative bg-white dark:bg-dark-card border border-slate-300/80 dark:border-dark-border focus-within:border-brand-500 dark:focus-within:border-brand-500 rounded-2xl shadow-soft dark:shadow-soft-dark transition-all">
-                    <!-- Text Area -->
-                    <textarea
-                        id="question-input"
-                        rows="1"
-                        placeholder="Ask a question about your documents..."
-                        class="w-full pt-4 pb-12 pl-4 pr-16 text-sm bg-transparent text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:outline-none resize-none max-h-44 overflow-y-auto custom-scrollbar leading-relaxed"
-                        onkeydown="handleKeyDown(event)"
-                        oninput="autoGrow(this)"
-                    ></textarea>
+            <!-- Scrollable Documents List -->
+            <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar" id="document-list-container">
+                <ul id="document-list" class="space-y-2">
+                    {% if documents %}
+                        {% for doc in documents %}
+                        <li class="doc-item group flex items-center justify-between p-2.5 rounded-xl studio-card studio-card-interactive" data-name="{{ doc.name|lower }}">
+                            <div class="flex items-center space-x-2.5 overflow-hidden flex-1 min-w-0 pr-2">
+                                <!-- Extension Icon -->
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold studio-pill">
+                                    {% if doc.name.endswith('.pdf') %}PDF
+                                    {% elif doc.name.endswith('.docx') %}DOC
+                                    {% elif doc.name.endswith('.xlsx') %}XLS
+                                    {% elif doc.name.endswith('.pptx') %}PPT
+                                    {% else %}TXT
+                                    {% endif %}
+                                </div>
+                                <div class="flex flex-col min-w-0 flex-1">
+                                    <span class="text-xs font-medium text-studio-ink dark:text-studio-darkInk truncate" title="{{ doc.name }}">{{ doc.name }}</span>
+                                    <span class="text-[10px] font-mono text-studio-muted dark:text-studio-darkMuted">{{ doc.chunks }} indexed vectors</span>
+                                </div>
+                            </div>
+                            <button onclick="confirmDeleteDocument('{{ doc.name }}')" class="opacity-0 group-hover:opacity-100 text-studio-muted hover:text-rose-600 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" title="Delete document">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li id="no-docs-item" class="text-xs text-studio-muted dark:text-studio-darkMuted italic py-10 text-center flex flex-col items-center">
+                            <div class="w-10 h-10 rounded-xl studio-surface flex items-center justify-center mb-2 text-studio-muted">
+                                <i data-lucide="file-plus" class="w-5 h-5"></i>
+                            </div>
+                            <span class="font-medium text-studio-ink dark:text-studio-darkInk">No documents indexed yet</span>
+                            <span class="text-[11px] mt-1 text-studio-muted">Upload documents above to begin querying.</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
 
-                    <!-- Bottom Bar Inside Box -->
-                    <div class="absolute bottom-2.5 left-4 right-3 flex items-center justify-between pointer-events-none">
-                        <!-- Context Status Indicator -->
-                        <div class="pointer-events-auto flex items-center space-x-2 text-[11px] text-slate-400 dark:text-zinc-500">
-                            <span class="flex items-center gap-1 font-medium">
-                                <i data-lucide="book-open" class="w-3 h-3 text-brand-500"></i>
-                                <span id="input-doc-status">{{ documents|length }} doc(s) in context</span>
-                            </span>
-                            <span class="hidden sm:inline">•</span>
-                            <span class="hidden sm:inline text-[10px]">
-                                <kbd class="px-1.5 py-0.5 bg-slate-100 dark:bg-dark-surface rounded text-slate-600 dark:text-zinc-400 font-mono border border-slate-200 dark:border-dark-border">Enter ↵</kbd> to send
-                            </span>
-                        </div>
-
-                        <!-- Send Button -->
-                        <button
-                            type="submit"
-                            id="send-button"
-                            class="pointer-events-auto p-2 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none text-white shadow-glow-brand transition-all cursor-pointer flex items-center justify-center"
-                            title="Send message (Enter)"
-                        >
-                            <i data-lucide="arrow-up" class="w-4 h-4"></i>
-                        </button>
+            <!-- Drawer Footer: System Specs -->
+            <div class="p-3.5 border-t border-studio-border dark:border-studio-darkBorder bg-studio-surface/50 dark:bg-studio-darkSurface/30 space-y-2">
+                <div class="p-2.5 rounded-xl studio-card text-[11px] space-y-1">
+                    <div class="flex items-center justify-between text-studio-muted dark:text-studio-darkMuted">
+                        <span class="flex items-center gap-1.5 font-medium">
+                            <i data-lucide="cpu" class="w-3 h-3"></i>
+                            <span>LLM Model</span>
+                        </span>
+                        <span class="font-mono text-studio-ink dark:text-studio-darkInk font-semibold">{{ model_name }}</span>
                     </div>
-                </form>
-
-                <div class="mt-2 text-center text-[10px] text-slate-400 dark:text-zinc-500">
-                    DocChat generates answers grounded strictly in your uploaded document context.
+                    <div class="flex items-center justify-between text-studio-muted dark:text-studio-darkMuted">
+                        <span class="flex items-center gap-1.5 font-medium">
+                            <i data-lucide="database" class="w-3 h-3"></i>
+                            <span>Vector Store</span>
+                        </span>
+                        <span class="font-mono text-studio-ink dark:text-studio-darkInk font-semibold">ChromaDB Cosine</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
+        </aside>
+
+    </div>
 </div>
 {% endblock %}

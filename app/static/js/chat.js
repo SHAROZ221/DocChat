@@ -1,12 +1,13 @@
 // ==========================================================================
-// DocChat — Modern UI/UX Controller
-// Design System: Clean AI SaaS / OLED Dark Mode / Data-Dense
+// DocChat — Clean Studio Minimalist Controller
+// Design System: Neutral Apple / Notion Paper Aesthetic
 // ==========================================================================
 
 document.addEventListener("DOMContentLoaded", () => {
     initTheme();
     setupDropZone();
     setupTextarea();
+    setupGlobalShortcuts();
     lucide.createIcons();
 });
 
@@ -43,23 +44,36 @@ function updateThemeIcon() {
 }
 
 // --------------------------------------------------------------------------
-// Mobile Sidebar Drawer
+// Slide-Over Knowledge Base Drawer
 // --------------------------------------------------------------------------
-function toggleMobileSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    const backdrop = document.getElementById("sidebar-backdrop");
-    if (!sidebar || !backdrop) return;
+function openLibraryDrawer() {
+    const drawer = document.getElementById("library-drawer");
+    const backdrop = document.getElementById("drawer-backdrop");
+    if (!drawer || !backdrop) return;
 
-    const isClosed = sidebar.classList.contains("-translate-x-full");
-    if (isClosed) {
-        sidebar.classList.remove("-translate-x-full");
-        sidebar.classList.add("translate-x-0");
-        backdrop.classList.remove("hidden");
-    } else {
-        sidebar.classList.add("-translate-x-full");
-        sidebar.classList.remove("translate-x-0");
-        backdrop.classList.add("hidden");
-    }
+    drawer.classList.remove("drawer-closed");
+    drawer.classList.add("drawer-open");
+    backdrop.classList.remove("hidden");
+    lucide.createIcons();
+}
+
+function closeLibraryDrawer() {
+    const drawer = document.getElementById("library-drawer");
+    const backdrop = document.getElementById("drawer-backdrop");
+    if (!drawer || !backdrop) return;
+
+    drawer.classList.remove("drawer-open");
+    drawer.classList.add("drawer-closed");
+    backdrop.classList.add("hidden");
+}
+
+function setupGlobalShortcuts() {
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            closeLibraryDrawer();
+            closeModal();
+        }
+    });
 }
 
 // --------------------------------------------------------------------------
@@ -70,15 +84,15 @@ function showToast(message, type = "info") {
     if (!container) return;
 
     const toast = document.createElement("div");
-    toast.className = `toast-enter pointer-events-auto flex items-center space-x-2.5 px-4 py-3 rounded-xl border shadow-xl text-xs font-semibold backdrop-blur-md transition-all ${
+    toast.className = `toast-enter pointer-events-auto flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl border text-xs font-medium backdrop-blur-md shadow-studio-elevated transition-all ${
         type === "success" 
-            ? "bg-emerald-50/95 dark:bg-emerald-950/90 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-800"
+            ? "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800"
             : type === "error"
-            ? "bg-rose-50/95 dark:bg-rose-950/90 text-rose-900 dark:text-rose-200 border-rose-300 dark:border-rose-800"
-            : "bg-white/95 dark:bg-dark-card/95 text-slate-800 dark:text-zinc-200 border-slate-200 dark:border-dark-border"
+            ? "bg-rose-50 dark:bg-rose-950/80 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-800"
+            : "bg-studio-card dark:bg-studio-darkCard text-studio-ink dark:text-studio-darkInk border-studio-border dark:border-studio-darkBorder"
     }`;
 
-    const iconName = type === "success" ? "check-circle" : type === "error" ? "alert-triangle" : "info";
+    const iconName = type === "success" ? "check-circle" : type === "error" ? "alert-circle" : "info";
     toast.innerHTML = `
         <i data-lucide="${iconName}" class="w-4 h-4 flex-shrink-0"></i>
         <span>${escapeHtml(message)}</span>
@@ -91,7 +105,7 @@ function showToast(message, type = "info") {
         toast.classList.remove("toast-enter");
         toast.classList.add("toast-exit");
         setTimeout(() => toast.remove(), 250);
-    }, 3800);
+    }, 3500);
 }
 
 // --------------------------------------------------------------------------
@@ -103,18 +117,18 @@ function showModal({ title, message, confirmText = "Confirm", confirmClass = "bg
     if (!container || !content) return;
 
     content.innerHTML = `
-        <div class="flex items-start justify-between mb-4">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">${escapeHtml(title)}</h3>
-            <button onclick="closeModal()" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 cursor-pointer">
-                <i data-lucide="x" class="w-4 h-4"></i>
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-sm font-bold text-studio-ink dark:text-studio-darkInk">${escapeHtml(title)}</h3>
+            <button onclick="closeModal()" class="p-1 rounded-lg studio-pill hover:text-studio-ink dark:hover:text-studio-darkInk cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
             </button>
         </div>
-        <p class="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed mb-6">${escapeHtml(message)}</p>
+        <p class="text-xs text-studio-muted dark:text-studio-darkMuted leading-relaxed mb-6">${escapeHtml(message)}</p>
         <div class="flex items-center justify-end space-x-2">
-            <button onclick="closeModal()" class="px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-dark-surface rounded-xl transition-colors cursor-pointer">
+            <button onclick="closeModal()" class="px-3.5 py-1.5 text-xs font-medium text-studio-muted dark:text-studio-darkMuted hover:text-studio-ink dark:hover:text-studio-darkInk rounded-lg transition-colors cursor-pointer">
                 Cancel
             </button>
-            <button id="modal-confirm-btn" class="px-4 py-2 text-xs font-semibold text-white rounded-xl shadow-sm transition-all cursor-pointer ${confirmClass}">
+            <button id="modal-confirm-btn" class="px-3.5 py-1.5 text-xs font-medium text-white rounded-lg shadow-studio-sm transition-all cursor-pointer ${confirmClass}">
                 ${escapeHtml(confirmText)}
             </button>
         </div>
@@ -153,12 +167,10 @@ function filterDocuments(query) {
         }
     }
 
-    let matchCount = 0;
     items.forEach(item => {
         const name = item.getAttribute("data-name") || "";
         if (name.includes(lowerQuery)) {
             item.classList.remove("hidden");
-            matchCount++;
         } else {
             item.classList.add("hidden");
         }
@@ -174,7 +186,7 @@ function clearDocumentFilter() {
 }
 
 // --------------------------------------------------------------------------
-// Input Auto-Grow & Keyboard
+// Input Auto-Grow & Keyboard Shortcuts
 // --------------------------------------------------------------------------
 function setupTextarea() {
     const input = document.getElementById("question-input");
@@ -185,7 +197,7 @@ function setupTextarea() {
 
 function autoGrow(element) {
     element.style.height = "auto";
-    element.style.height = Math.min(element.scrollHeight, 180) + "px";
+    element.style.height = Math.min(element.scrollHeight, 160) + "px";
 }
 
 function handleKeyDown(event) {
@@ -225,7 +237,7 @@ function setupDropZone() {
         dropZone.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.add("border-brand-500", "bg-brand-50/40", "dark:bg-brand-950/20", "scale-[1.01]");
+            dropZone.classList.add("border-studio-ink", "dark:border-studio-darkInk");
         });
     });
 
@@ -233,12 +245,26 @@ function setupDropZone() {
         dropZone.addEventListener(eventName, (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.remove("border-brand-500", "bg-brand-50/40", "dark:bg-brand-950/20", "scale-[1.01]");
+            dropZone.classList.remove("border-studio-ink", "dark:border-studio-darkInk");
         });
     });
 
     dropZone.addEventListener("drop", (e) => {
         if (e.dataTransfer.files.length > 0) {
+            handleFileUpload(e.dataTransfer.files[0]);
+        }
+    });
+
+    // Window drag-and-drop listener to auto-open drawer
+    window.addEventListener("dragover", (e) => {
+        e.preventDefault();
+    });
+
+    window.addEventListener("drop", (e) => {
+        if (e.target.closest("#drop-zone")) return; // handled by drop-zone
+        if (e.dataTransfer.files.length > 0) {
+            e.preventDefault();
+            openLibraryDrawer();
             handleFileUpload(e.dataTransfer.files[0]);
         }
     });
@@ -249,12 +275,14 @@ async function handleFileUpload(file) {
     const statusText = document.getElementById("upload-status-text");
     const fileInput = document.getElementById("file-input");
 
-    statusBox.classList.remove("hidden");
-    statusText.innerHTML = `
-        <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-brand-500"></i>
-        <span class="truncate max-w-[200px]">Parsing '${file.name}'...</span>
-    `;
-    lucide.createIcons();
+    if (statusBox) statusBox.classList.remove("hidden");
+    if (statusText) {
+        statusText.innerHTML = `
+            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-indigo-500"></i>
+            <span class="truncate max-w-[200px]">Parsing '${file.name}'...</span>
+        `;
+        lucide.createIcons();
+    }
 
     const formData = new FormData();
     formData.append("file", file);
@@ -271,17 +299,17 @@ async function handleFileUpload(file) {
             showToast(`Indexed ${result.filename} (${result.chunks_count} chunks)`, "success");
             renderDocumentList(result.documents_detailed || []);
             setTimeout(() => {
-                statusBox.classList.add("hidden");
-            }, 1200);
+                if (statusBox) statusBox.classList.add("hidden");
+            }, 1000);
         } else {
             showToast(result.error || "Upload failed", "error");
-            statusBox.classList.add("hidden");
+            if (statusBox) statusBox.classList.add("hidden");
         }
     } catch (err) {
         showToast("Upload error: " + err.message, "error");
-        statusBox.classList.add("hidden");
+        if (statusBox) statusBox.classList.add("hidden");
     } finally {
-        fileInput.value = "";
+        if (fileInput) fileInput.value = "";
     }
 }
 
@@ -289,25 +317,29 @@ function renderDocumentList(documents) {
     const list = document.getElementById("document-list");
     const docCountBadge = document.getElementById("doc-count-badge");
     const headerDocCount = document.getElementById("header-doc-count");
+    const headerDocCounterBadge = document.getElementById("header-doc-counter-badge");
     const totalChunksCount = document.getElementById("total-chunks-count");
     const inputDocStatus = document.getElementById("input-doc-status");
-
-    if (!list) return;
 
     const count = documents.length;
     const totalChunks = documents.reduce((sum, d) => sum + (d.chunks || 0), 0);
 
     if (docCountBadge) docCountBadge.textContent = count;
     if (headerDocCount) headerDocCount.textContent = count;
+    if (headerDocCounterBadge) headerDocCounterBadge.textContent = count;
     if (totalChunksCount) totalChunksCount.textContent = totalChunks;
     if (inputDocStatus) inputDocStatus.textContent = `${count} doc(s) in context`;
 
+    if (!list) return;
+
     if (count === 0) {
         list.innerHTML = `
-            <li id="no-docs-item" class="text-xs text-slate-400 dark:text-zinc-500 italic py-8 text-center flex flex-col items-center">
-                <i data-lucide="file-plus" class="w-8 h-8 text-slate-300 dark:text-zinc-700 mb-2"></i>
-                <span>No documents indexed yet.</span>
-                <span class="text-[11px] mt-1 text-slate-400 dark:text-zinc-600">Upload documents above to begin.</span>
+            <li id="no-docs-item" class="text-xs text-studio-muted dark:text-studio-darkMuted italic py-10 text-center flex flex-col items-center">
+                <div class="w-10 h-10 rounded-xl studio-surface flex items-center justify-center mb-2 text-studio-muted">
+                    <i data-lucide="file-plus" class="w-5 h-5"></i>
+                </div>
+                <span class="font-medium text-studio-ink dark:text-studio-darkInk">No documents indexed yet</span>
+                <span class="text-[11px] mt-1 text-studio-muted">Upload documents above to begin querying.</span>
             </li>
         `;
         lucide.createIcons();
@@ -316,35 +348,24 @@ function renderDocumentList(documents) {
 
     list.innerHTML = documents.map(doc => {
         const ext = doc.name.split('.').pop().toLowerCase();
-        let badgeColor = "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20";
         let label = "TXT";
-
-        if (ext === "pdf") {
-            badgeColor = "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
-            label = "PDF";
-        } else if (ext === "docx") {
-            badgeColor = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
-            label = "DOC";
-        } else if (ext === "xlsx") {
-            badgeColor = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
-            label = "XLS";
-        } else if (ext === "pptx") {
-            badgeColor = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-            label = "PPT";
-        }
+        if (ext === "pdf") label = "PDF";
+        else if (ext === "docx") label = "DOC";
+        else if (ext === "xlsx") label = "XLS";
+        else if (ext === "pptx") label = "PPT";
 
         return `
-            <li class="doc-item group flex items-center justify-between p-2 rounded-xl bg-white dark:bg-dark-surface/80 border border-slate-200/60 dark:border-dark-border/80 hover:border-brand-500/50 dark:hover:border-brand-500/50 hover:shadow-sm transition-all" data-name="${escapeHtml(doc.name.toLowerCase())}">
+            <li class="doc-item group flex items-center justify-between p-2.5 rounded-xl studio-card studio-card-interactive" data-name="${escapeHtml(doc.name.toLowerCase())}">
                 <div class="flex items-center space-x-2.5 overflow-hidden flex-1 min-w-0 pr-2">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold border ${badgeColor}">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-mono font-bold studio-pill">
                         ${label}
                     </div>
                     <div class="flex flex-col min-w-0 flex-1">
-                        <span class="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</span>
-                        <span class="text-[10px] font-mono text-slate-400 dark:text-zinc-500">${doc.chunks || 0} chunks indexed</span>
+                        <span class="text-xs font-medium text-studio-ink dark:text-studio-darkInk truncate" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</span>
+                        <span class="text-[10px] font-mono text-studio-muted dark:text-studio-darkMuted">${doc.chunks || 0} indexed vectors</span>
                     </div>
                 </div>
-                <button onclick="confirmDeleteDocument('${escapeHtml(doc.name)}')" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" title="Delete document">
+                <button onclick="confirmDeleteDocument('${escapeHtml(doc.name)}')" class="opacity-0 group-hover:opacity-100 text-studio-muted hover:text-rose-600 dark:hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" title="Delete document">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
             </li>
@@ -357,7 +378,7 @@ function renderDocumentList(documents) {
 function confirmDeleteDocument(sourceName) {
     showModal({
         title: "Delete Document",
-        message: `Are you sure you want to delete "${sourceName}"? All its vector embeddings and search chunks will be permanently removed from ChromaDB.`,
+        message: `Are you sure you want to remove "${sourceName}"? All its vector embeddings and search chunks will be permanently removed from ChromaDB.`,
         confirmText: "Delete",
         confirmClass: "bg-rose-600 hover:bg-rose-700",
         onConfirm: () => deleteDocument(sourceName)
@@ -441,20 +462,17 @@ function appendUserMessage(text) {
     if (!container) return;
 
     const div = document.createElement("div");
-    div.className = "flex justify-end max-w-4xl mx-auto w-full";
+    div.className = "flex justify-end max-w-3xl lg:max-w-4xl mx-auto w-full";
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     div.innerHTML = `
-        <div class="flex items-end space-x-2 max-w-2xl">
+        <div class="flex items-end space-x-2.5 max-w-xl sm:max-w-2xl">
             <div class="flex flex-col items-end">
-                <div class="bg-gradient-to-br from-brand-600 to-indigo-700 text-white rounded-2xl rounded-br-sm px-4 py-3 shadow-sm text-sm leading-relaxed border border-brand-500/20">
+                <div class="bg-studio-ink text-white dark:bg-studio-darkInk dark:text-studio-darkBg rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed shadow-studio-sm">
                     <p class="whitespace-pre-wrap">${escapeHtml(text)}</p>
                 </div>
-                <span class="text-[10px] text-slate-400 dark:text-zinc-500 mt-1 font-mono">${timestamp}</span>
-            </div>
-            <div class="w-7 h-7 rounded-lg bg-slate-200 dark:bg-dark-surface text-slate-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs flex-shrink-0 mb-4">
-                U
+                <span class="text-[10px] text-studio-muted dark:text-studio-darkMuted mt-1 font-mono">${timestamp}</span>
             </div>
         </div>
     `;
@@ -468,7 +486,7 @@ function appendAssistantMessage(text, sources = []) {
     if (!container) return;
 
     const div = document.createElement("div");
-    div.className = "flex justify-start max-w-4xl mx-auto w-full";
+    div.className = "flex justify-start max-w-3xl lg:max-w-4xl mx-auto w-full";
 
     const rawHtml = marked.parse(text);
     const sanitizedHtml = DOMPurify.sanitize(rawHtml);
@@ -478,39 +496,34 @@ function appendAssistantMessage(text, sources = []) {
     let sourcesHtml = "";
     if (sources && sources.length > 0) {
         sourcesHtml = `
-            <div class="mt-4 pt-3.5 border-t border-slate-200/80 dark:border-dark-border">
-                <button onclick="toggleSources(this)" class="flex items-center space-x-2 text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors cursor-pointer group">
-                    <div class="p-1 rounded bg-brand-500/10 text-brand-600 dark:text-brand-400">
-                        <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-                    </div>
-                    <span>Cited Document Excerpts (${sources.length})</span>
+            <div class="mt-4 pt-3.5 border-t border-studio-border dark:border-studio-darkBorder">
+                <button onclick="toggleSources(this)" class="flex items-center space-x-2 text-xs font-semibold text-studio-muted dark:text-studio-darkMuted hover:text-studio-ink dark:hover:text-studio-darkInk transition-colors cursor-pointer group">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                    <span>Cited Document Sources (${sources.length})</span>
                     <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-y-0.5"></i>
                 </button>
-                <div class="sources-panel hidden mt-3 grid grid-cols-1 gap-2">
-                    ${sources.map((src, i) => {
+                <div class="sources-panel hidden mt-3 space-y-2">
+                    ${sources.map((src) => {
                         const pct = Math.round((src.score || 0) * 100);
-                        const isHigh = pct >= 50;
-                        const scoreColor = isHigh ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
-                        const barColor = isHigh ? "bg-emerald-500" : "bg-blue-500";
 
                         return `
-                            <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-dark-surface/60 border border-slate-200/60 dark:border-dark-border text-xs relative group">
-                                <div class="flex items-center justify-between font-medium text-slate-800 dark:text-zinc-200 mb-1.5">
-                                    <div class="flex items-center space-x-1.5 truncate max-w-[280px]">
-                                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <div class="p-3 rounded-xl studio-card text-xs">
+                                <div class="flex items-center justify-between font-medium text-studio-ink dark:text-studio-darkInk mb-1">
+                                    <div class="flex items-center space-x-2 truncate max-w-[280px] sm:max-w-[400px]">
+                                        <i data-lucide="file-text" class="w-3 h-3 text-studio-muted"></i>
                                         <span class="font-semibold truncate" title="${escapeHtml(src.source)}">${escapeHtml(src.source)}</span>
-                                        <span class="text-slate-400 dark:text-zinc-500 text-[10px]">p.${escapeHtml(String(src.page))}</span>
+                                        <span class="text-studio-muted dark:text-studio-darkMuted text-[10px] font-mono">p.${escapeHtml(String(src.page))}</span>
                                     </div>
                                     <div class="flex items-center space-x-2 flex-shrink-0">
-                                        <div class="flex items-center space-x-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${scoreColor}">
-                                            <span>${pct}% match</span>
-                                        </div>
-                                        <button onclick="copySnippet(this, '${escapeHtml(src.snippet)}')" class="text-slate-400 hover:text-brand-500 p-1 rounded transition-colors cursor-pointer" title="Copy snippet">
+                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded studio-pill font-semibold">
+                                            ${pct}% match
+                                        </span>
+                                        <button onclick="copySnippet(this, '${escapeHtml(src.snippet)}')" class="text-studio-muted hover:text-studio-ink dark:hover:text-studio-darkInk p-1 rounded transition-colors cursor-pointer" title="Copy snippet">
                                             <i data-lucide="copy" class="w-3 h-3"></i>
                                         </button>
                                     </div>
                                 </div>
-                                <p class="text-slate-600 dark:text-zinc-400 text-[11px] leading-relaxed italic border-l-2 border-slate-300 dark:border-zinc-700 pl-2 my-1">
+                                <p class="text-studio-muted dark:text-studio-darkMuted text-[11px] leading-relaxed italic border-l-2 border-studio-border dark:border-studio-darkBorder pl-2.5 my-1.5">
                                     "${escapeHtml(src.snippet)}"
                                 </p>
                             </div>
@@ -522,26 +535,24 @@ function appendAssistantMessage(text, sources = []) {
     }
 
     div.innerHTML = `
-        <div class="flex items-start space-x-3 max-w-3xl w-full">
-            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-glow-brand mt-0.5">
-                <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <div class="flex items-start space-x-3 max-w-full w-full">
+            <div class="w-7 h-7 rounded-lg bg-studio-surface dark:bg-studio-darkSurface text-studio-ink dark:text-studio-darkInk flex items-center justify-center flex-shrink-0 mt-0.5 border border-studio-border dark:border-studio-darkBorder">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
             </div>
             <div class="flex flex-col flex-1 min-w-0">
                 <div class="flex items-center space-x-2 mb-1.5">
-                    <span class="text-xs font-bold text-slate-900 dark:text-white">DocChat AI</span>
-                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-dark-surface text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-dark-border">
-                        Grounded
-                    </span>
-                    <span class="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">${timestamp}</span>
+                    <span class="text-xs font-bold text-studio-ink dark:text-studio-darkInk">DocChat</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded studio-pill font-medium">Grounded RAG</span>
+                    <span class="text-[10px] text-studio-muted dark:text-studio-darkMuted font-mono">${timestamp}</span>
                 </div>
-                <div class="bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl rounded-tl-sm p-4 md:p-5 shadow-soft dark:shadow-soft-dark text-slate-800 dark:text-zinc-200 w-full overflow-hidden">
+                <div class="studio-card rounded-2xl rounded-tl-sm p-4 sm:p-5 shadow-studio-card text-studio-ink dark:text-studio-darkInk w-full overflow-hidden">
                     <div class="prose-chat" id="${messageId}">${sanitizedHtml}</div>
                     ${sourcesHtml}
-                    <!-- Action Bar -->
-                    <div class="mt-3 pt-2.5 flex items-center justify-end space-x-2 text-[11px] text-slate-400 dark:text-zinc-500 border-t border-slate-100 dark:border-dark-border/40">
-                        <button onclick="copyAnswer('${messageId}')" class="flex items-center space-x-1 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-dark-surface hover:text-slate-700 dark:hover:text-zinc-200 transition-colors cursor-pointer" title="Copy full response">
+                    <!-- Bottom Action Bar -->
+                    <div class="mt-3 pt-2 flex items-center justify-end space-x-2 text-[11px] text-studio-muted dark:text-studio-darkMuted border-t border-studio-border dark:border-studio-darkBorder">
+                        <button onclick="copyAnswer('${messageId}')" class="flex items-center space-x-1 px-2 py-1 rounded hover:text-studio-ink dark:hover:text-studio-darkInk transition-colors cursor-pointer" title="Copy answer">
                             <i data-lucide="copy" class="w-3 h-3"></i>
-                            <span>Copy response</span>
+                            <span>Copy answer</span>
                         </button>
                     </div>
                 </div>
@@ -559,9 +570,9 @@ function setupCodeBlockCopy(container) {
     const preBlocks = container.querySelectorAll("pre");
     preBlocks.forEach(pre => {
         const copyBtn = document.createElement("button");
-        copyBtn.className = "absolute top-2 right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all cursor-pointer";
+        copyBtn.className = "absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white backdrop-blur-sm transition-all cursor-pointer border border-white/10";
         copyBtn.title = "Copy code";
-        copyBtn.innerHTML = `<i data-lucide="copy" class="w-3.5 h-3.5"></i>`;
+        copyBtn.innerHTML = `<i data-lucide="copy" class="w-3 h-3"></i>`;
 
         copyBtn.onclick = () => {
             const code = pre.querySelector("code")?.innerText || pre.innerText;
@@ -585,7 +596,7 @@ function copyAnswer(messageId) {
 
 function copySnippet(btn, snippet) {
     navigator.clipboard.writeText(snippet).then(() => {
-        showToast("Excerpt snippet copied!", "success");
+        showToast("Snippet copied!", "success");
     });
 }
 
@@ -605,20 +616,20 @@ function appendLoadingSkeleton() {
     const id = "loading-" + Date.now();
     const div = document.createElement("div");
     div.id = id;
-    div.className = "flex items-start space-x-3 max-w-3xl max-w-4xl mx-auto w-full";
+    div.className = "flex items-start space-x-3 max-w-3xl lg:max-w-4xl mx-auto w-full";
     div.innerHTML = `
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-glow-brand mt-0.5">
-            <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <div class="w-7 h-7 rounded-lg bg-studio-surface dark:bg-studio-darkSurface text-studio-ink dark:text-studio-darkInk flex items-center justify-center flex-shrink-0 mt-0.5 border border-studio-border dark:border-studio-darkBorder">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
         </div>
-        <div class="bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border rounded-2xl rounded-tl-sm p-4 shadow-soft dark:shadow-soft-dark w-full max-w-md">
-            <div class="flex items-center space-x-2 text-xs font-semibold text-brand-600 dark:text-brand-400 mb-3">
-                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
-                <span>Retrieving document context & synthesizing...</span>
+        <div class="studio-card rounded-2xl rounded-tl-sm p-4 sm:p-5 shadow-studio-card w-full max-w-md">
+            <div class="flex items-center space-x-2 text-xs font-semibold text-studio-muted dark:text-studio-darkMuted mb-3">
+                <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-indigo-500"></i>
+                <span>Retrieving context & synthesizing...</span>
             </div>
             <div class="space-y-2">
-                <div class="h-3 w-full rounded-full skeleton-shimmer"></div>
-                <div class="h-3 w-4/5 rounded-full skeleton-shimmer"></div>
-                <div class="h-3 w-2/3 rounded-full skeleton-shimmer"></div>
+                <div class="h-3 w-full rounded skeleton-shimmer"></div>
+                <div class="h-3 w-4/5 rounded skeleton-shimmer"></div>
+                <div class="h-3 w-2/3 rounded skeleton-shimmer"></div>
             </div>
         </div>
     `;
@@ -637,7 +648,7 @@ function confirmClearChat() {
         title: "Reset Conversation Session",
         message: "Are you sure you want to clear this conversation history? The active document index in ChromaDB will not be deleted.",
         confirmText: "Reset Chat",
-        confirmClass: "bg-slate-900 dark:bg-zinc-100 dark:text-slate-900 hover:bg-slate-800",
+        confirmClass: "bg-studio-ink dark:bg-studio-darkInk text-white dark:text-studio-darkBg hover:opacity-90",
         onConfirm: clearChat
     });
 }
@@ -649,36 +660,20 @@ async function clearChat() {
 
         const container = document.getElementById("messages-container");
         container.innerHTML = `
-            <div id="welcome-card" class="max-w-2xl mx-auto my-8 md:my-14 text-center p-6 md:p-10 rounded-3xl bg-white dark:bg-dark-card border border-slate-200/80 dark:border-dark-border shadow-soft dark:shadow-soft-dark">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-600 mx-auto flex items-center justify-center text-white mb-5 shadow-glow-brand">
-                    <i data-lucide="sparkles" class="w-8 h-8"></i>
+            <div id="welcome-card" class="max-w-xl mx-auto my-12 md:my-20 text-center">
+                <div class="w-12 h-12 rounded-xl bg-studio-ink dark:bg-studio-darkInk text-white dark:text-studio-darkBg mx-auto flex items-center justify-center mb-4 shadow-studio-sm">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
                 </div>
-                <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    Chat with your documents
-                </h2>
-                <p class="text-sm text-slate-500 dark:text-zinc-400 mt-2.5 max-w-lg mx-auto leading-relaxed">
-                    Chat session has been reset. Upload documents or click a starter question below.
+                <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-studio-ink dark:text-studio-darkInk">
+                    Grounded Document Intelligence
+                </h1>
+                <p class="text-sm text-studio-muted dark:text-studio-darkMuted mt-2 max-w-md mx-auto leading-relaxed">
+                    Chat session has been reset. Upload documents to begin querying.
                 </p>
-
-                <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-                    <button onclick="askPreset('Provide a structured executive summary of the uploaded document(s).')" class="p-3.5 rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50/70 dark:bg-dark-surface/50 hover:border-brand-500/60 hover:shadow-md text-slate-800 dark:text-zinc-200 transition-all group cursor-pointer">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="p-1.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">
-                                <i data-lucide="file-text" class="w-4 h-4"></i>
-                            </div>
-                            <span class="text-xs font-bold">Executive Summary</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 line-clamp-2">Summarize the core message and objectives.</p>
-                    </button>
-
-                    <button onclick="askPreset('What are the key statistics, figures, and numerical metrics mentioned?')" class="p-3.5 rounded-2xl border border-slate-200 dark:border-dark-border bg-slate-50/70 dark:bg-dark-surface/50 hover:border-brand-500/60 hover:shadow-md text-slate-800 dark:text-zinc-200 transition-all group cursor-pointer">
-                        <div class="flex items-center space-x-2.5">
-                            <div class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
-                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                            </div>
-                            <span class="text-xs font-bold">Key Figures & Metrics</span>
-                        </div>
-                        <p class="text-[11px] text-slate-500 dark:text-zinc-400 mt-1.5 line-clamp-2">Extract quantitative findings and measurements.</p>
+                <div class="mt-6 flex items-center justify-center gap-3">
+                    <button onclick="openLibraryDrawer()" class="inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold bg-studio-ink dark:bg-studio-darkInk text-white dark:text-studio-darkBg hover:opacity-90 transition-all cursor-pointer shadow-studio-sm">
+                        <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                        <span>Manage & Upload Documents</span>
                     </button>
                 </div>
             </div>

@@ -1,9 +1,68 @@
 /* ==========================================================================
-   DocChat — Modern UI/UX Stylesheet
-   Design System: Clean AI SaaS / OLED Dark Mode / Data-Dense
+   DocChat — Clean Studio Minimalist Stylesheet
+   Design System: Neutral Apple / Notion Paper Aesthetic (Light & Dark)
    ========================================================================== */
 
-/* Custom Scrollbars */
+/* --------------------------------------------------------------------------
+   Surface & Card Utilities
+   -------------------------------------------------------------------------- */
+.studio-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E4E4E7;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+.dark .studio-card {
+    background-color: #18181B;
+    border: 1px solid #2A2A30;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.studio-card-interactive {
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.studio-card-interactive:hover {
+    border-color: #A1A1AA;
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+}
+
+.dark .studio-card-interactive:hover {
+    border-color: #4B4B55;
+    box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Studio Pill for Badges & Status */
+.studio-pill {
+    background-color: #F4F4F5;
+    border: 1px solid #E4E4E7;
+    color: #52525B;
+}
+
+.dark .studio-pill {
+    background-color: #222226;
+    border: 1px solid #2E2E33;
+    color: #A1A1AA;
+}
+
+/* --------------------------------------------------------------------------
+   Slide-Over Drawer Styles
+   -------------------------------------------------------------------------- */
+#library-drawer {
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-closed {
+    transform: translateX(100%);
+}
+
+.drawer-open {
+    transform: translateX(0);
+}
+
+/* --------------------------------------------------------------------------
+   Custom Scrollbars (Clean, Minimalist)
+   -------------------------------------------------------------------------- */
 .custom-scrollbar::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -14,29 +73,31 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.25);
+    background: #D4D4D8;
     border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.45);
+    background: #A1A1AA;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(82, 82, 91, 0.35);
+    background: #3F3F46;
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(82, 82, 91, 0.6);
+    background: #52525B;
 }
 
 /* --------------------------------------------------------------------------
    Markdown Chat Typography (.prose-chat)
+   Editorial Apple/Notion feel: High readability, balanced spacing
    -------------------------------------------------------------------------- */
 .prose-chat {
-    font-size: 0.925rem;
-    line-height: 1.68;
+    font-size: 0.935rem;
+    line-height: 1.7;
     word-break: break-word;
+    color: inherit;
 }
 
 .prose-chat p {
@@ -56,11 +117,12 @@
     margin-top: 1.25rem;
     margin-bottom: 0.5rem;
     line-height: 1.35;
+    letter-spacing: -0.015em;
 }
 
 .prose-chat h1 { font-size: 1.25rem; }
 .prose-chat h2 { font-size: 1.125rem; }
-.prose-chat h3 { font-size: 1rem; }
+.prose-chat h3 { font-size: 1.0rem; }
 
 .prose-chat ul {
     list-style-type: disc;
@@ -80,45 +142,50 @@
 
 .prose-chat hr {
     border: none;
-    border-top: 1px solid rgba(148, 163, 184, 0.25);
-    margin: 1rem 0;
+    border-top: 1px solid #E4E4E7;
+    margin: 1.2rem 0;
+}
+
+.dark .prose-chat hr {
+    border-top-color: #2E2E33;
 }
 
 /* Inline Code */
 .prose-chat :not(pre) > code {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.825em;
-    padding: 0.2rem 0.4rem;
-    border-radius: 0.375rem;
-    background-color: rgba(99, 102, 241, 0.08);
-    color: #4f46e5;
-    border: 1px solid rgba(99, 102, 241, 0.15);
+    font-size: 0.84em;
+    padding: 0.18rem 0.42rem;
+    border-radius: 0.35rem;
+    background-color: #F4F4F5;
+    color: #18181B;
+    border: 1px solid #E4E4E7;
+    font-weight: 500;
 }
 
 .dark .prose-chat :not(pre) > code {
-    background-color: rgba(165, 180, 252, 0.1);
-    color: #a5b4fc;
-    border-color: rgba(165, 180, 252, 0.15);
+    background-color: #222226;
+    color: #EDEDEF;
+    border-color: #2E2E33;
 }
 
 /* Code Blocks */
 .prose-chat pre {
     position: relative;
-    padding: 1rem 1.15rem;
+    padding: 1rem 1.25rem;
     border-radius: 0.75rem;
-    background-color: #0f1117;
-    color: #f8fafc;
-    border: 1px solid #1e222d;
+    background-color: #18181B;
+    color: #EDEDEF;
+    border: 1px solid #2A2A30;
     overflow-x: auto;
-    margin: 0.85rem 0;
+    margin: 1rem 0;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.825rem;
-    line-height: 1.6;
+    font-size: 0.835rem;
+    line-height: 1.65;
 }
 
 .dark .prose-chat pre {
-    background-color: #0d0e12;
-    border-color: #27272a;
+    background-color: #111113;
+    border-color: #2A2A30;
 }
 
 .prose-chat pre code {
@@ -130,16 +197,16 @@
 
 /* Blockquotes */
 .prose-chat blockquote {
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid #18181B;
     padding-left: 1rem;
     font-style: italic;
-    color: #64748b;
+    color: #52525B;
     margin: 0.85rem 0;
 }
 
 .dark .prose-chat blockquote {
-    border-left-color: #818cf8;
-    color: #a1a1aa;
+    border-left-color: #EDEDEF;
+    color: #A1A1AA;
 }
 
 /* Tables */
@@ -147,33 +214,40 @@
     width: 100%;
     border-collapse: collapse;
     margin: 1rem 0;
-    font-size: 0.85rem;
+    font-size: 0.865rem;
+    border-radius: 0.6rem;
+    overflow: hidden;
+    border: 1px solid #E4E4E7;
+}
+
+.dark .prose-chat table {
+    border-color: #2E2E33;
 }
 
 .prose-chat th {
-    background-color: rgba(148, 163, 184, 0.1);
-    padding: 0.5rem 0.75rem;
+    background-color: #F4F4F5;
+    padding: 0.6rem 0.85rem;
     text-align: left;
     font-weight: 600;
-    border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+    border-bottom: 2px solid #E4E4E7;
 }
 
 .prose-chat td {
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid #E4E4E7;
 }
 
 .dark .prose-chat th {
-    background-color: rgba(39, 39, 42, 0.5);
-    border-bottom-color: rgba(63, 63, 70, 0.6);
+    background-color: #222226;
+    border-bottom-color: #2E2E33;
 }
 
 .dark .prose-chat td {
-    border-bottom-color: rgba(39, 39, 42, 0.5);
+    border-bottom-color: #2A2A30;
 }
 
 /* --------------------------------------------------------------------------
-   Thinking / Shimmer Animation
+   Thinking Skeleton Shimmer Animation
    -------------------------------------------------------------------------- */
 @keyframes shimmerWave {
     0% {
@@ -185,18 +259,20 @@
 }
 
 .skeleton-shimmer {
-    background: linear-gradient(90deg, rgba(226, 232, 240, 0.4) 25%, rgba(203, 213, 225, 0.8) 50%, rgba(226, 232, 240, 0.4) 75%);
+    background: linear-gradient(90deg, #F4F4F5 25%, #E4E4E7 50%, #F4F4F5 75%);
     background-size: 200% 100%;
     animation: shimmerWave 1.8s infinite ease-in-out;
 }
 
 .dark .skeleton-shimmer {
-    background: linear-gradient(90deg, rgba(39, 39, 42, 0.4) 25%, rgba(63, 63, 70, 0.7) 50%, rgba(39, 39, 42, 0.4) 75%);
+    background: linear-gradient(90deg, #1E1E22 25%, #2A2A30 50%, #1E1E22 75%);
     background-size: 200% 100%;
     animation: shimmerWave 1.8s infinite ease-in-out;
 }
 
-/* Toast Animations */
+/* --------------------------------------------------------------------------
+   Toast & Modal Animations
+   -------------------------------------------------------------------------- */
 @keyframes toastIn {
     from {
         opacity: 0;
@@ -215,19 +291,18 @@
     }
     to {
         opacity: 0;
-        transform: translateY(10px) scale(0.95);
+        transform: translateY(8px) scale(0.95);
     }
 }
 
 .toast-enter {
-    animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: toastIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .toast-exit {
-    animation: toastOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: toastOut 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Modal Animations */
 .modal-show #modal-content {
     opacity: 1;
     transform: scale(1);

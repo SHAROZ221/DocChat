@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}DocChat — Grounded RAG Document Intelligence{% endblock %}</title>
+    <title>{% block title %}DocChat — Grounded Document Intelligence Studio{% endblock %}</title>
 
     <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,36 +18,41 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace'],
                     },
                     colors: {
-                        brand: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            200: '#c7d2fe',
-                            300: '#a5b4fc',
-                            400: '#818cf8',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            800: '#3730a3',
-                            900: '#312e81',
-                            950: '#1e1b4b',
+                        studio: {
+                            bg: '#FBFBFA',          /* Notion / Apple neutral warm canvas */
+                            card: '#FFFFFF',        /* Pure paper white card */
+                            surface: '#F4F4F5',     /* Subtle button/dock surface */
+                            border: '#E4E4E7',      /* Micro 1px border */
+                            muted: '#71717A',       /* Zinc-500 secondary text */
+                            ink: '#18181B',         /* Zinc-900 primary high contrast ink */
+                            
+                            /* Dark Mode Neutral Slate / Obsidian */
+                            darkBg: '#111113',      /* Deep neutral obsidian background */
+                            darkCard: '#18181B',    /* Elevated neutral card */
+                            darkSurface: '#222226', /* Interactive elevated surface */
+                            darkBorder: '#2A2A30',  /* Crisp dark micro-border */
+                            darkMuted: '#9D9DA6',   /* Muted text for dark mode */
+                            darkInk: '#EDEDEF',     /* Primary off-white ink */
                         },
-                        dark: {
-                            bg: '#09090b',         /* Zinc 950 base */
-                            card: '#121215',       /* Elevated surface */
-                            surface: '#18181b',    /* Interactive surface */
-                            border: '#27272a',     /* Zinc 800 subtle borders */
-                            hover: '#27272a',      /* Zinc 800 hover */
+                        accent: {
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            500: '#6366F1',
+                            600: '#4F46E5',
+                            700: '#4338CA',
                         }
                     },
                     boxShadow: {
-                        'glow-brand': '0 0 25px -5px rgba(99, 102, 241, 0.3)',
-                        'glow-emerald': '0 0 20px -5px rgba(16, 185, 129, 0.25)',
-                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-                        'soft-dark': '0 4px 25px -2px rgba(0, 0, 0, 0.5)',
+                        'studio-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+                        'studio-card': '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+                        'studio-elevated': '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+                        'studio-drawer': '-10px 0 35px -5px rgba(0, 0, 0, 0.08)',
+                        'studio-dark-card': '0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                        'studio-dark-elevated': '0 12px 30px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06)',
                     }
                 }
             }
@@ -63,12 +68,13 @@
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body class="h-full bg-slate-50 dark:bg-dark-bg text-slate-900 dark:text-zinc-100 flex overflow-hidden font-sans antialiased selection:bg-brand-500/20 selection:text-brand-600 dark:selection:text-brand-300">
+<body class="h-full bg-studio-bg dark:bg-studio-darkBg text-studio-ink dark:text-studio-darkInk flex flex-col overflow-hidden font-sans antialiased selection:bg-neutral-900 selection:text-white dark:selection:bg-white dark:selection:text-black relative transition-colors duration-200">
+
     {% block content %}{% endblock %}
 
-    <!-- Custom Modal Container for Dialogs -->
-    <div id="modal-container" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
-        <div id="modal-content" class="bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-all scale-95 opacity-0">
+    <!-- Custom Modal Container for Confirmation Dialogs -->
+    <div id="modal-container" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity">
+        <div id="modal-content" class="bg-studio-card dark:bg-studio-darkCard border border-studio-border dark:border-studio-darkBorder rounded-2xl p-6 max-w-md w-full shadow-studio-elevated dark:shadow-studio-dark-elevated transform transition-all scale-95 opacity-0">
             <!-- Injected via JS -->
         </div>
     </div>
