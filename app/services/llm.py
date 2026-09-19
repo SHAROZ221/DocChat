@@ -89,6 +89,44 @@ Rules:
         """Lazy load genai client for the active key."""
         return self.get_client()
 
+    def _build_user_content(
+        self,
+        question: str,
+        context_chunks: List[Dict[str, Any]],
+        chat_history: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        """Format document chunks and conversation history into prompt payload."""
+        context_blocks = []
+        for i, chunk in enumerate(context_chunks, 1):
+            source = chunk.get("source", "Unknown document")
+            page = chunk.get("page", "1")
+            text = chunk.get("text", "").strip()
+            score = chunk.get("score", 0.0)
+            context_blocks.append(
+                f"--- Excerpt {i} [File: {source} | Page: {page} | Relevance: {score:.2f}] ---\n{text}"
+            )
+        context_str = "\n\n".join(context_blocks)
+
+        history_str = ""
+        if chat_history:
+            recent_turns = chat_history[-5:]  # Keep last 5 turns to preserve context window
+            lines = []
+            for turn in recent_turns:
+                lines.append(f"User: {turn.get('question', '')}")
+                lines.append(f"Assistant: {turn.get('answer', '')}")
+            history_str = "\n".join(lines)
+
+        return f"""### DOCUMENT CONTEXT EXCERPTS:
+{context_str}
+
+### RECENT CHAT HISTORY:
+{history_str if history_str else "(No prior conversation)"}
+
+### USER QUESTION:
+{question}
+
+Please answer the user's question following the system instructions and citing the relevant excerpts."""
+
     def generate_answer(
         self,
         question: str,
@@ -109,38 +147,7 @@ Rules:
         if not context_chunks:
             return "No relevant document excerpts were found to answer your question. Please ensure your documents are uploaded and indexed."
 
-        # Format context excerpts
-        context_blocks = []
-        for i, chunk in enumerate(context_chunks, 1):
-            source = chunk.get("source", "Unknown document")
-            page = chunk.get("page", "1")
-            text = chunk.get("text", "").strip()
-            score = chunk.get("score", 0.0)
-            context_blocks.append(
-                f"--- Excerpt {i} [File: {source} | Page: {page} | Relevance: {score:.2f}] ---\n{text}"
-            )
-        context_str = "\n\n".join(context_blocks)
-
-        # Format conversation history
-        history_str = ""
-        if chat_history:
-            recent_turns = chat_history[-5:]  # Keep last 5 turns to preserve context window
-            lines = []
-            for turn in recent_turns:
-                lines.append(f"User: {turn.get('question', '')}")
-                lines.append(f"Assistant: {turn.get('answer', '')}")
-            history_str = "\n".join(lines)
-
-        user_content = f"""### DOCUMENT CONTEXT EXCERPTS:
-{context_str}
-
-### RECENT CHAT HISTORY:
-{history_str if history_str else "(No prior conversation)"}
-
-### USER QUESTION:
-{question}
-
-Please answer the user's question following the system instructions and citing the relevant excerpts."""
+        user_content = self._build_user_content(question, context_chunks, chat_history)
 
         # Build candidate model cascade: primary model first, followed by fallbacks
         candidate_models = [self.model_name]
@@ -187,12 +194,10 @@ Please answer the user's question following the system instructions and citing t
                     is_not_found = "404" in err_str or "NOT_FOUND" in err_str
 
                     if is_not_found:
-                        # Model deprecated or name incorrect, advance to next candidate model immediately
                         logger.warning(f"Model '{model}' returned 404. Trying next fallback model...")
                         break
 
                     if is_transient and attempt < max_retries_per_model - 1:
-                        # Rotate API key if multiple are present
                         if len(self.api_keys) > 1:
                             self.rotate_key()
 
@@ -204,9 +209,103 @@ Please answer the user's question following the system instructions and citing t
                         time.sleep(backoff)
                         continue
                     else:
-                        # Rotate key before trying the next model
                         if len(self.api_keys) > 1:
                             self.rotate_key()
                         break
 
         return f"Error communicating with Gemini API: {last_error}"
+
+    def generate_answer_stream(
+        self,
+        question: str,
+        context_chunks: List[Dict[str, Any]],
+        chat_history: Optional[List[Dict[str, Any]]] = None,
+    ):
+        """Generate streaming answer tokens grounded in context chunks and chat history.
+
+        Args:
+            question: Current user question.
+            context_chunks: Retrieved document chunks.
+            chat_history: Previous conversation turns [{'question': ..., 'answer': ...}].
+
+        Yields:
+            str: Token or chunk text as generated by the model.
+        """
+        if not context_chunks:
+            yield "No relevant document excerpts were found to answer your question. Please ensure your documents are uploaded and indexed."
+            return
+
+        user_content = self._build_user_content(question, context_chunks, chat_history)
+
+        candidate_models = [self.model_name]
+        for m in self.fallback_models:
+            if m and m not in candidate_models:
+                candidate_models.append(m)
+
+        last_error = None
+        max_retries_per_model = 2 if len(candidate_models) > 1 else 3
+
+        for model in candidate_models:
+            for attempt in range(max_retries_per_model):
+                try:
+                    active_client = self.client
+                    stream = active_client.models.generate_content_stream(
+                        model=model,
+                        contents=user_content,
+                        config=types.GenerateContentConfig(
+                            system_instruction=self.SYSTEM_PROMPT,
+                            temperature=0.2,
+                        ),
+                    )
+
+                    has_yielded = False
+                    for chunk in stream:
+                        if chunk and hasattr(chunk, "text") and chunk.text:
+                            has_yielded = True
+                            yield chunk.text
+
+                    if has_yielded:
+                        return
+                    else:
+                        yield "No response generated."
+                        return
+
+                except Exception as e:
+                    err_str = str(e)
+                    last_error = err_str
+
+                    is_not_found = "404" in err_str or "NOT_FOUND" in err_str
+                    if is_not_found:
+                        logger.warning(f"Model '{model}' returned 404 in stream. Trying next fallback model...")
+                        break
+
+                    is_transient = any(
+                        token in err_str
+                        for token in [
+                            "503",
+                            "429",
+                            "UNAVAILABLE",
+                            "RESOURCE_EXHAUSTED",
+                            "high demand",
+                            "temporarily unavailable",
+                            "timeout",
+                        ]
+                    )
+
+                    if is_transient and attempt < max_retries_per_model - 1:
+                        if len(self.api_keys) > 1:
+                            self.rotate_key()
+
+                        backoff = 1.2 * (2 ** attempt) + random.uniform(0.1, 0.4)
+                        logger.warning(
+                            f"Transient streaming error with {model} (Attempt {attempt + 1}/{max_retries_per_model}): {err_str[:120]}. "
+                            f"Retrying in {backoff:.1f}s..."
+                        )
+                        time.sleep(backoff)
+                        continue
+                    else:
+                        if len(self.api_keys) > 1:
+                            self.rotate_key()
+                        break
+
+        yield f"Error communicating with Gemini API: {last_error}"

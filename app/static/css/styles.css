@@ -307,3 +307,22 @@
     opacity: 1;
     transform: scale(1);
 }
+
+/* --------------------------------------------------------------------------
+   Real-Time Token Streaming Cursor
+   -------------------------------------------------------------------------- */
+.stream-cursor {
+    display: inline-block;
+    width: 3px;
+    height: 1.15em;
+    background-color: currentColor;
+    margin-left: 3px;
+    vertical-align: -0.15em;
+    border-radius: 1px;
+    animation: blink-cursor 0.8s infinite;
+}
+
+@keyframes blink-cursor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}

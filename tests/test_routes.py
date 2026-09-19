@@ -68,3 +68,18 @@ def test_delete_document_route(app_client):
     assert response.status_code == 200
     assert response.get_json()["success"] is True
     assert "quantum.txt" not in response.get_json()["documents"]
+
+
+def test_chat_stream_empty_question(app_client):
+    response = app_client.post("/api/chat/stream", json={"question": ""})
+    assert response.status_code == 400
+
+
+def test_chat_stream_no_documents(app_client):
+    response = app_client.post("/api/chat/stream", json={"question": "What is Python?"})
+    assert response.status_code == 200
+    assert "text/event-stream" in response.content_type
+    data = response.data.decode("utf-8")
+    assert "data: " in data
+    assert '"type": "done"' in data
+

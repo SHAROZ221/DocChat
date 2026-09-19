@@ -423,38 +423,210 @@ async function submitQuestion(event) {
     // Append user message
     appendUserMessage(question);
 
-    // Append loading shimmer state
-    const loadingId = appendLoadingSkeleton();
-    scrollToBottom();
-
     // Disable send button while answering
     const sendBtn = document.getElementById("send-button");
     if (sendBtn) sendBtn.disabled = true;
 
+    const streamContext = createStreamingAssistantMessage();
+    let sources = [];
+
     try {
-        const response = await fetch("/api/chat", {
+        const response = await fetch("/api/chat/stream", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ question }),
         });
 
-        const data = await response.json();
-
-        // Remove loading state
-        removeLoadingSkeleton(loadingId);
-
-        if (data.success) {
-            appendAssistantMessage(data.answer, data.sources);
-        } else {
-            appendAssistantMessage(`⚠️ **Error:** ${data.error || "Something went wrong."}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP error ${response.status}`);
         }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith("data: ")) {
+                    const jsonStr = trimmed.slice(6);
+                    try {
+                        const payload = JSON.parse(jsonStr);
+                        if (payload.type === "sources") {
+                            sources = payload.sources || [];
+                            if (sources.length > 0 && streamContext.sourcesContainer) {
+                                streamContext.sourcesContainer.innerHTML = renderSourcesHtml(sources);
+                                lucide.createIcons();
+                            }
+                        } else if (payload.type === "token") {
+                            updateStreamingAssistantMessage(streamContext, payload.token);
+                        } else if (payload.type === "done") {
+                            finalizeStreamingAssistantMessage(streamContext, sources);
+                        } else if (payload.type === "error") {
+                            showToast(payload.error, "error");
+                            updateStreamingAssistantMessage(streamContext, `\n\n⚠️ **Error:** ${payload.error}`);
+                        }
+                    } catch (e) {
+                        console.error("Error parsing SSE data:", e, jsonStr);
+                    }
+                }
+            }
+        }
+
+        finalizeStreamingAssistantMessage(streamContext, sources);
+
     } catch (err) {
-        removeLoadingSkeleton(loadingId);
-        appendAssistantMessage(`⚠️ **Network Error:** ${err.message}`);
+        console.error("Streaming error:", err);
+        if (streamContext && !streamContext.hasStarted) {
+            streamContext.contentEl.innerHTML = `<p class="text-rose-600 dark:text-rose-400 text-sm">⚠️ **Error:** ${escapeHtml(err.message)}</p>`;
+        } else {
+            showToast("Streaming interrupted: " + err.message, "error");
+        }
+        finalizeStreamingAssistantMessage(streamContext, sources);
     } finally {
         if (sendBtn) sendBtn.disabled = false;
         scrollToBottom();
     }
+}
+
+function createStreamingAssistantMessage() {
+    const container = document.getElementById("messages-container");
+    if (!container) return null;
+
+    const div = document.createElement("div");
+    div.className = "flex justify-start max-w-3xl lg:max-w-4xl mx-auto w-full";
+
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const messageId = "msg-" + Date.now();
+
+    div.innerHTML = `
+        <div class="flex items-start space-x-3 max-w-full w-full">
+            <div class="w-7 h-7 rounded-lg bg-studio-surface dark:bg-studio-darkSurface text-studio-ink dark:text-studio-darkInk flex items-center justify-center flex-shrink-0 mt-0.5 border border-studio-border dark:border-studio-darkBorder">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            </div>
+            <div class="flex flex-col flex-1 min-w-0">
+                <div class="flex items-center space-x-2 mb-1.5">
+                    <span class="text-xs font-bold text-studio-ink dark:text-studio-darkInk">DocChat</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded studio-pill font-medium">Grounded RAG</span>
+                    <span class="text-[10px] text-studio-muted dark:text-studio-darkMuted font-mono">${timestamp}</span>
+                </div>
+                <div class="studio-card rounded-2xl rounded-tl-sm p-4 sm:p-5 shadow-studio-card text-studio-ink dark:text-studio-darkInk w-full overflow-hidden">
+                    <div class="prose-chat" id="${messageId}">
+                        <div class="stream-placeholder flex items-center space-x-2 text-xs font-semibold text-studio-muted dark:text-studio-darkMuted">
+                            <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-indigo-500"></i>
+                            <span>Synthesizing response...</span>
+                        </div>
+                    </div>
+                    <div class="sources-container"></div>
+                    <!-- Bottom Action Bar -->
+                    <div class="action-bar hidden mt-3 pt-2 flex items-center justify-end space-x-2 text-[11px] text-studio-muted dark:text-studio-darkMuted border-t border-studio-border dark:border-studio-darkBorder">
+                        <button onclick="copyAnswer('${messageId}')" class="flex items-center space-x-1 px-2 py-1 rounded hover:text-studio-ink dark:hover:text-studio-darkInk transition-colors cursor-pointer" title="Copy answer">
+                            <i data-lucide="copy" class="w-3 h-3"></i>
+                            <span>Copy answer</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(div);
+    lucide.createIcons();
+    scrollToBottom();
+
+    return {
+        wrapper: div,
+        messageId: messageId,
+        contentEl: div.querySelector(`#${messageId}`),
+        sourcesContainer: div.querySelector(".sources-container"),
+        actionBar: div.querySelector(".action-bar"),
+        accumulatedText: "",
+        hasStarted: false,
+        isFinalized: false,
+    };
+}
+
+function updateStreamingAssistantMessage(ctx, token) {
+    if (!ctx || ctx.isFinalized) return;
+    if (!ctx.hasStarted) {
+        ctx.hasStarted = true;
+        ctx.contentEl.innerHTML = "";
+    }
+    ctx.accumulatedText += token;
+    const rawHtml = marked.parse(ctx.accumulatedText);
+    ctx.contentEl.innerHTML = DOMPurify.sanitize(rawHtml) + '<span class="stream-cursor"></span>';
+    scrollToBottom();
+}
+
+function finalizeStreamingAssistantMessage(ctx, sources = []) {
+    if (!ctx || ctx.isFinalized) return;
+    ctx.isFinalized = true;
+
+    if (ctx.accumulatedText) {
+        const rawHtml = marked.parse(ctx.accumulatedText);
+        ctx.contentEl.innerHTML = DOMPurify.sanitize(rawHtml);
+    }
+
+    if (sources && sources.length > 0 && ctx.sourcesContainer && !ctx.sourcesContainer.innerHTML.trim()) {
+        ctx.sourcesContainer.innerHTML = renderSourcesHtml(sources);
+    }
+
+    if (ctx.actionBar) {
+        ctx.actionBar.classList.remove("hidden");
+    }
+
+    lucide.createIcons();
+    setupCodeBlockCopy(ctx.wrapper);
+    scrollToBottom();
+}
+
+function renderSourcesHtml(sources) {
+    if (!sources || sources.length === 0) return "";
+    return `
+        <div class="mt-4 pt-3.5 border-t border-studio-border dark:border-studio-darkBorder">
+            <button onclick="toggleSources(this)" class="flex items-center space-x-2 text-xs font-semibold text-studio-muted dark:text-studio-darkMuted hover:text-studio-ink dark:hover:text-studio-darkInk transition-colors cursor-pointer group">
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                <span>Cited Document Sources (${sources.length})</span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-y-0.5"></i>
+            </button>
+            <div class="sources-panel hidden mt-3 space-y-2">
+                ${sources.map((src) => {
+                    const pct = Math.round((src.score || 0) * 100);
+
+                    return `
+                        <div class="p-3 rounded-xl studio-card text-xs">
+                            <div class="flex items-center justify-between font-medium text-studio-ink dark:text-studio-darkInk mb-1">
+                                <div class="flex items-center space-x-2 truncate max-w-[280px] sm:max-w-[400px]">
+                                    <i data-lucide="file-text" class="w-3 h-3 text-studio-muted"></i>
+                                    <span class="font-semibold truncate" title="${escapeHtml(src.source)}">${escapeHtml(src.source)}</span>
+                                    <span class="text-studio-muted dark:text-studio-darkMuted text-[10px] font-mono">p.${escapeHtml(String(src.page))}</span>
+                                </div>
+                                <div class="flex items-center space-x-2 flex-shrink-0">
+                                    <span class="text-[10px] font-mono px-2 py-0.5 rounded studio-pill font-semibold">
+                                        ${pct}% match
+                                    </span>
+                                    <button onclick="copySnippet(this, '${escapeHtml(src.snippet)}')" class="text-studio-muted hover:text-studio-ink dark:hover:text-studio-darkInk p-1 rounded transition-colors cursor-pointer" title="Copy snippet">
+                                        <i data-lucide="copy" class="w-3 h-3"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-studio-muted dark:text-studio-darkMuted text-[11px] leading-relaxed italic border-l-2 border-studio-border dark:border-studio-darkBorder pl-2.5 my-1.5">
+                                "${escapeHtml(src.snippet)}"
+                            </p>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+        </div>
+    `;
 }
 
 function appendUserMessage(text) {
@@ -492,47 +664,7 @@ function appendAssistantMessage(text, sources = []) {
     const sanitizedHtml = DOMPurify.sanitize(rawHtml);
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = "msg-" + Date.now();
-
-    let sourcesHtml = "";
-    if (sources && sources.length > 0) {
-        sourcesHtml = `
-            <div class="mt-4 pt-3.5 border-t border-studio-border dark:border-studio-darkBorder">
-                <button onclick="toggleSources(this)" class="flex items-center space-x-2 text-xs font-semibold text-studio-muted dark:text-studio-darkMuted hover:text-studio-ink dark:hover:text-studio-darkInk transition-colors cursor-pointer group">
-                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-                    <span>Cited Document Sources (${sources.length})</span>
-                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-y-0.5"></i>
-                </button>
-                <div class="sources-panel hidden mt-3 space-y-2">
-                    ${sources.map((src) => {
-                        const pct = Math.round((src.score || 0) * 100);
-
-                        return `
-                            <div class="p-3 rounded-xl studio-card text-xs">
-                                <div class="flex items-center justify-between font-medium text-studio-ink dark:text-studio-darkInk mb-1">
-                                    <div class="flex items-center space-x-2 truncate max-w-[280px] sm:max-w-[400px]">
-                                        <i data-lucide="file-text" class="w-3 h-3 text-studio-muted"></i>
-                                        <span class="font-semibold truncate" title="${escapeHtml(src.source)}">${escapeHtml(src.source)}</span>
-                                        <span class="text-studio-muted dark:text-studio-darkMuted text-[10px] font-mono">p.${escapeHtml(String(src.page))}</span>
-                                    </div>
-                                    <div class="flex items-center space-x-2 flex-shrink-0">
-                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded studio-pill font-semibold">
-                                            ${pct}% match
-                                        </span>
-                                        <button onclick="copySnippet(this, '${escapeHtml(src.snippet)}')" class="text-studio-muted hover:text-studio-ink dark:hover:text-studio-darkInk p-1 rounded transition-colors cursor-pointer" title="Copy snippet">
-                                            <i data-lucide="copy" class="w-3 h-3"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <p class="text-studio-muted dark:text-studio-darkMuted text-[11px] leading-relaxed italic border-l-2 border-studio-border dark:border-studio-darkBorder pl-2.5 my-1.5">
-                                    "${escapeHtml(src.snippet)}"
-                                </p>
-                            </div>
-                        `;
-                    }).join("")}
-                </div>
-            </div>
-        `;
-    }
+    const sourcesHtml = renderSourcesHtml(sources);
 
     div.innerHTML = `
         <div class="flex items-start space-x-3 max-w-full w-full">
