@@ -31,8 +31,10 @@ def create_app(config_class=Config):
         top_k=app.config["TOP_K"]
     )
     app.llm = GeminiClient(
-        api_key=app.config["GEMINI_API_KEY"],
-        model_name=app.config["GEMINI_MODEL"]
+        api_key=app.config.get("GEMINI_API_KEY"),
+        api_keys=app.config.get("GEMINI_API_KEYS"),
+        model_name=app.config.get("GEMINI_MODEL", "gemini-3.8-flash"),
+        fallback_models=app.config.get("GEMINI_FALLBACK_MODELS"),
     )
     app.session_manager = SessionManager()
 

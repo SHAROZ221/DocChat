@@ -1,6 +1,9 @@
-"""Gemini LLM client with RAG prompt formatting and source grounding."""
+"""Gemini LLM client with RAG prompt formatting, multi-key failover pool, and exponential backoff retry."""
 
 import os
+import time
+import random
+import logging
 from typing import List, Dict, Any, Optional
 
 try:
@@ -10,11 +13,14 @@ except ImportError:
     genai = None
     types = None
 
+logger = logging.getLogger(__name__)
+
 
 class GeminiClient:
-    """Gemini API client for RAG-based document Q&A."""
+    """Gemini API client for RAG-based document Q&A with multi-key pool and retry/fallback resilience."""
 
-    DEFAULT_MODEL = "gemini-3.6-flash"
+    DEFAULT_MODEL = "gemini-3.8-flash"
+    DEFAULT_FALLBACKS = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
 
     SYSTEM_PROMPT = """You are DocChat, an intelligent and precise document Q&A assistant.
 Your goal is to answer the user's question accurately using ONLY the provided document context excerpts.
@@ -27,27 +33,61 @@ Rules:
 4. Conversation Flow: Use the chat history to understand follow-up questions and pronouns (e.g. 'what did it say about X?'), but ensure factual answers are supported by the context.
 5. Clarity: Be concise, structured, and easy to read (use bullet points or bold text where appropriate)."""
 
-    def __init__(self, api_key: Optional[str] = None, model_name: str = DEFAULT_MODEL):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY", "")
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        api_keys: Optional[List[str]] = None,
+        model_name: str = DEFAULT_MODEL,
+        fallback_models: Optional[List[str]] = None,
+    ):
+        if api_keys:
+            self.api_keys = [k.strip() for k in api_keys if k.strip()]
+        elif api_key:
+            self.api_keys = [api_key.strip()]
+        else:
+            raw_keys = os.getenv("GEMINI_API_KEYS", "")
+            if raw_keys:
+                self.api_keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
+            else:
+                single = os.getenv("GEMINI_API_KEY", "")
+                self.api_keys = [single.strip()] if single else []
+
         self.model_name = model_name
-        self._client = None
+        self.fallback_models = fallback_models if fallback_models is not None else self.DEFAULT_FALLBACKS
+        self._key_index = 0
+        self._clients: Dict[str, Any] = {}
 
     @property
-    def client(self):
-        """Lazy load genai client."""
-        if not self.api_key:
+    def current_api_key(self) -> str:
+        if not self.api_keys:
             raise ValueError(
                 "**Gemini API Key missing!** Please add your free key to the `.env` file:\n\n"
                 "1. Open `.env` in the project root.\n"
-                "2. Set `GEMINI_API_KEY=your_key_here`.\n"
+                "2. Set `GEMINI_API_KEY=your_key_here` (or multiple keys: `GEMINI_API_KEYS=key1,key2`).\n"
                 "3. You can obtain a free API key at [Google AI Studio](https://aistudio.google.com/apikey)."
             )
+        return self.api_keys[self._key_index % len(self.api_keys)]
+
+    def rotate_key(self) -> str:
+        """Advance to next API key in the pool if multiple are configured."""
+        if len(self.api_keys) > 1:
+            self._key_index = (self._key_index + 1) % len(self.api_keys)
+            logger.info(f"Rotated to API Key #{self._key_index + 1} in pool.")
+        return self.current_api_key
+
+    def get_client(self, api_key: Optional[str] = None):
+        """Get or instantiate genai.Client for the given key."""
         if genai is None:
             raise ImportError("google-genai package is not installed.")
+        key = api_key or self.current_api_key
+        if key not in self._clients:
+            self._clients[key] = genai.Client(api_key=key)
+        return self._clients[key]
 
-        if self._client is None:
-            self._client = genai.Client(api_key=self.api_key)
-        return self._client
+    @property
+    def client(self):
+        """Lazy load genai client for the active key."""
+        return self.get_client()
 
     def generate_answer(
         self,
@@ -55,7 +95,7 @@ Rules:
         context_chunks: List[Dict[str, Any]],
         chat_history: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
-        """Generate answer grounded in context chunks and chat history.
+        """Generate answer grounded in context chunks and chat history with retry and fallback cascades.
 
         Args:
             question: Current user question.
@@ -102,15 +142,71 @@ Rules:
 
 Please answer the user's question following the system instructions and citing the relevant excerpts."""
 
-        try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=user_content,
-                config=types.GenerateContentConfig(
-                    system_instruction=self.SYSTEM_PROMPT,
-                    temperature=0.2,  # Low temperature for factual accuracy
-                )
-            )
-            return response.text if response.text else "No response generated."
-        except Exception as e:
-            return f"Error communicating with Gemini API: {str(e)}"
+        # Build candidate model cascade: primary model first, followed by fallbacks
+        candidate_models = [self.model_name]
+        for m in self.fallback_models:
+            if m and m not in candidate_models:
+                candidate_models.append(m)
+
+        last_error = None
+        max_retries_per_model = 2 if len(candidate_models) > 1 else 3
+
+        for model in candidate_models:
+            for attempt in range(max_retries_per_model):
+                try:
+                    active_client = self.client
+                    response = active_client.models.generate_content(
+                        model=model,
+                        contents=user_content,
+                        config=types.GenerateContentConfig(
+                            system_instruction=self.SYSTEM_PROMPT,
+                            temperature=0.2,  # Low temperature for factual accuracy
+                        ),
+                    )
+                    if response and response.text:
+                        return response.text
+                    return "No response generated."
+
+                except Exception as e:
+                    err_str = str(e)
+                    last_error = err_str
+
+                    # Check if error is transient (503 UNAVAILABLE, 429 RESOURCE_EXHAUSTED, timeout)
+                    is_transient = any(
+                        token in err_str
+                        for token in [
+                            "503",
+                            "429",
+                            "UNAVAILABLE",
+                            "RESOURCE_EXHAUSTED",
+                            "high demand",
+                            "temporarily unavailable",
+                            "timeout",
+                        ]
+                    )
+                    is_not_found = "404" in err_str or "NOT_FOUND" in err_str
+
+                    if is_not_found:
+                        # Model deprecated or name incorrect, advance to next candidate model immediately
+                        logger.warning(f"Model '{model}' returned 404. Trying next fallback model...")
+                        break
+
+                    if is_transient and attempt < max_retries_per_model - 1:
+                        # Rotate API key if multiple are present
+                        if len(self.api_keys) > 1:
+                            self.rotate_key()
+
+                        backoff = 1.2 * (2 ** attempt) + random.uniform(0.1, 0.4)
+                        logger.warning(
+                            f"Transient error with {model} (Attempt {attempt + 1}/{max_retries_per_model}): {err_str[:120]}. "
+                            f"Retrying in {backoff:.1f}s..."
+                        )
+                        time.sleep(backoff)
+                        continue
+                    else:
+                        # Rotate key before trying the next model
+                        if len(self.api_keys) > 1:
+                            self.rotate_key()
+                        break
+
+        return f"Error communicating with Gemini API: {last_error}"

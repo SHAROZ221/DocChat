@@ -15,7 +15,14 @@ class Config:
 
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "docchat-dev-secret-key-change-in-production")
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    # Support multiple comma-separated keys for pool rotation (e.g. GEMINI_API_KEYS=key1,key2)
+    _raw_keys = os.getenv("GEMINI_API_KEYS", "")
+    GEMINI_API_KEYS = [k.strip() for k in _raw_keys.split(",") if k.strip()] if _raw_keys else ([GEMINI_API_KEY] if GEMINI_API_KEY else [])
+
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+    GEMINI_FALLBACK_MODELS = [
+        m.strip() for m in os.getenv("GEMINI_FALLBACK_MODELS", "gemini-3.7-flash,gemini-3.6-flash,gemini-2.5-flash").split(",") if m.strip()
+    ]
 
     # Embedding model (local sentence-transformers)
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
